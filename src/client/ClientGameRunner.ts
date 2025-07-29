@@ -25,6 +25,7 @@ import { loadTerrainMap, TerrainMapData } from "../core/game/TerrainMapLoader";
 import { UserSettings } from "../core/game/UserSettings";
 import { WorkerClient } from "../core/worker/WorkerClient";
 import {
+  BuildShortcutEvent,
   DoBoatAttackEvent,
   DoGroundAttackEvent,
   InputHandler,
@@ -34,6 +35,7 @@ import {
 import { endGame, startGame, startTime } from "./LocalPersistantStats";
 import { getPersistentID } from "./Main";
 import {
+  BuildUnitIntentEvent,
   SendAttackIntentEvent,
   SendBoatAttackIntentEvent,
   SendHashEvent,
@@ -250,6 +252,7 @@ export class ClientGameRunner {
       DoGroundAttackEvent,
       this.doGroundAttackUnderCursor.bind(this),
     );
+    this.eventBus.on(BuildShortcutEvent, this.onBuildShortcut.bind(this));
 
     this.renderer.initialize();
     this.input.initialize();
@@ -520,6 +523,53 @@ export class ClientGameRunner {
     const limitSquared = limit * limit;
     if (distanceSquared > limitSquared) return false;
     return true;
+  }
+
+  private onBuildShortcut(event: BuildShortcutEvent): void {
+    // Use the last known mouse position from ClientGameRunner
+    if (!this.lastMousePosition) {
+      console.log("No mouse position available for build shortcut");
+      return;
+    }
+
+    // Convert screen coordinates to world coordinates
+    const worldCell = this.renderer.transformHandler.screenToWorldCoordinates(
+      this.lastMousePosition.x,
+      this.lastMousePosition.y,
+    );
+    const tile = this.gameView.ref(worldCell.x, worldCell.y);
+
+    // Check if the player can build this type of unit at this location
+    if (this.myPlayer === null) {
+      const myPlayer = this.gameView.playerByClientID(this.lobby.clientID);
+      if (myPlayer === null) return;
+      this.myPlayer = myPlayer;
+    }
+
+    // Check if the tile belongs to the player
+    const tileOwner = this.gameView.owner(tile);
+    if (!tileOwner.isPlayer() || tileOwner.id() !== this.myPlayer.id()) {
+      console.log(
+        `Cannot build on enemy territory. Tile owner: ${tileOwner.id()}, Player: ${this.myPlayer.id()}`,
+      );
+      return;
+    }
+
+    this.myPlayer.actions(tile).then((actions) => {
+      if (this.myPlayer === null) return;
+
+      const buildableUnit = actions.buildableUnits.find(
+        (unit) => unit.type === event.buildingType,
+      );
+      if (!buildableUnit || !buildableUnit.canBuild) {
+        console.log(`Cannot build ${event.buildingType} at this location`);
+        return;
+      }
+
+      // Send the build intent
+      this.eventBus.emit(new BuildUnitIntentEvent(event.buildingType, tile));
+      console.log(`Building ${event.buildingType} at tile ${tile}`);
+    });
   }
 
   private onMouseMove(event: MouseMoveEvent) {

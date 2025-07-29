@@ -35,6 +35,14 @@ export class MouseDownEvent implements GameEvent {
   ) {}
 }
 
+export class BuildShortcutEvent implements GameEvent {
+  constructor(
+    public readonly x: number,
+    public readonly y: number,
+    public readonly buildingType: UnitType,
+  ) {}
+}
+
 export class MouseMoveEvent implements GameEvent {
   constructor(
     public readonly x: number,
@@ -150,6 +158,9 @@ export class InputHandler {
       groundAttack: "KeyG",
       modifierKey: "ControlLeft",
       altKey: "AltLeft",
+      buildCityShortcut: "Key7",
+      buildPortShortcut: "Key8",
+      buildDefenseShortcut: "Key9",
       ...JSON.parse(localStorage.getItem("settings.keybinds") ?? "{}"),
     };
 
@@ -226,6 +237,7 @@ export class InputHandler {
     }, 1);
 
     window.addEventListener("keydown", (e) => {
+      console.log("Key pressed:", e.code, "Keybinds:", this.keybinds);
       if (e.code === this.keybinds.toggleView) {
         e.preventDefault();
         if (!this.alternateView) {
@@ -237,6 +249,29 @@ export class InputHandler {
       if (e.code === "Escape") {
         e.preventDefault();
         this.eventBus.emit(new CloseViewEvent());
+      }
+
+      // Build shortcuts
+      if (this.userSettings.buildShortcutsEnabled()) {
+        if (e.code === this.keybinds.buildCityShortcut) {
+          e.preventDefault();
+          console.log("Build city shortcut pressed");
+          this.eventBus.emit(new BuildShortcutEvent(0, 0, UnitType.City));
+        }
+
+        if (e.code === this.keybinds.buildPortShortcut) {
+          e.preventDefault();
+          console.log("Build port shortcut pressed");
+          this.eventBus.emit(new BuildShortcutEvent(0, 0, UnitType.Port));
+        }
+
+        if (e.code === this.keybinds.buildDefenseShortcut) {
+          e.preventDefault();
+          console.log("Build defense shortcut pressed");
+          this.eventBus.emit(
+            new BuildShortcutEvent(0, 0, UnitType.DefensePost),
+          );
+        }
       }
 
       if (

@@ -176,6 +176,14 @@ export class UserSettingModal extends LitElement {
     console.log("🏳️ Territory Patterns:", enabled ? "ON" : "OFF");
   }
 
+  private toggleBuildShortcuts(e: CustomEvent<{ checked: boolean }>) {
+    const enabled = e.detail?.checked;
+    if (typeof enabled !== "boolean") return;
+
+    this.userSettings.set("settings.buildShortcutsEnabled", enabled);
+    console.log("🏗️ Build Shortcuts:", enabled ? "ON" : "OFF");
+  }
+
   private handleKeybindChange(
     e: CustomEvent<{ action: string; value: string }>,
   ) {
@@ -313,6 +321,15 @@ export class UserSettingModal extends LitElement {
         id="territory-patterns-toggle"
         .checked=${this.userSettings.territoryPatterns()}
         @change=${this.toggleTerritoryPatterns}
+      ></setting-toggle>
+
+      <!-- 🏗️ Build Shortcuts -->
+      <setting-toggle
+        label="${translateText("user_setting.build_shortcuts_label")}"
+        description="${translateText("user_setting.build_shortcuts_desc")}"
+        id="build-shortcuts-toggle"
+        .checked=${this.userSettings.buildShortcutsEnabled()}
+        @change=${this.toggleBuildShortcuts}
       ></setting-toggle>
 
       <!-- ⚔️ Attack Ratio -->
@@ -461,6 +478,37 @@ export class UserSettingModal extends LitElement {
         description=${translateText("user_setting.zoom_in_desc")}
         defaultKey="KeyE"
         .value=${this.keybinds["zoomIn"] ?? ""}
+        @change=${this.handleKeybindChange}
+      ></setting-keybind>
+
+      <div class="text-center text-white text-base font-semibold mt-5 mb-2">
+        ${translateText("user_setting.build_controls")}
+      </div>
+
+      <setting-keybind
+        action="buildCityShortcut"
+        label=${translateText("user_setting.build_city")}
+        description=${translateText("user_setting.build_city_desc")}
+        defaultKey="Key7"
+        .value=${this.keybinds["buildCityShortcut"] ?? ""}
+        @change=${this.handleKeybindChange}
+      ></setting-keybind>
+
+      <setting-keybind
+        action="buildDefenseShortcut"
+        label=${translateText("user_setting.build_defense")}
+        description=${translateText("user_setting.build_defense_desc")}
+        defaultKey="Key9"
+        .value=${this.keybinds["buildDefenseShortcut"] ?? ""}
+        @change=${this.handleKeybindChange}
+      ></setting-keybind>
+
+      <setting-keybind
+        action="buildPortShortcut"
+        label=${translateText("user_setting.build_port")}
+        description=${translateText("user_setting.build_port_desc")}
+        defaultKey="Key8"
+        .value=${this.keybinds["buildPortShortcut"] ?? ""}
         @change=${this.handleKeybindChange}
       ></setting-keybind>
 

@@ -48,6 +48,10 @@ export class UserSettings {
     return this.get("settings.territoryPatterns", true);
   }
 
+  buildShortcutsEnabled() {
+    return this.get("settings.buildShortcutsEnabled", true);
+  }
+
   focusLocked() {
     return false;
     // TODO: renable when performance issues are fixed.
@@ -84,6 +88,10 @@ export class UserSettings {
 
   toggleTerritoryPatterns() {
     this.set("settings.territoryPatterns", !this.territoryPatterns());
+  }
+
+  toggleBuildShortcuts() {
+    this.set("settings.buildShortcutsEnabled", !this.buildShortcutsEnabled());
   }
 
   toggleDarkMode() {
