@@ -158,9 +158,9 @@ export class InputHandler {
       groundAttack: "KeyG",
       modifierKey: "ControlLeft",
       altKey: "AltLeft",
-      buildCityShortcut: "Key7",
-      buildPortShortcut: "Key8",
-      buildDefenseShortcut: "Key9",
+      buildCityShortcut: "Digit7",
+      buildPortShortcut: "Digit8",
+      buildDefenseShortcut: "Digit9",
       ...JSON.parse(localStorage.getItem("settings.keybinds") ?? "{}"),
     };
 
