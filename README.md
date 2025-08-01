@@ -6,9 +6,7 @@
   </picture>
 </p>
 
-[OpenFront.io](https://openfront.io/) is an online real-time strategy game focused on territorial control and alliance building. Players compete to expand their territory, build structures, and form strategic alliances in various maps based on real-world geography.
-
-This is a fork/rewrite of WarFront.io. Credit to https://github.com/WarFrontIO.
+This is a fork of Openfront which is originally a fork of warfront. I've added a few features that I thought were missing from the game and improved a few other things.
 
 ![CI](https://github.com/openfrontio/OpenFrontIO/actions/workflows/ci.yml/badge.svg)
 [![Crowdin](https://badges.crowdin.net/openfront-mls/localized.svg)](https://crowdin.com/project/openfront-mls)
