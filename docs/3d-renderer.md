@@ -4,7 +4,7 @@ The default view uses a Three.js scene with an orthographic camera, raised terra
 
 Use **I** for 3D, **O** for the classic 2D view, or the sidebar buttons. Drag and scroll retain the normal map controls. The selected view is saved locally. The simulation and multiplayer protocol are unchanged.
 
-Player names and live troop totals appear together on high-contrast labels, with a minimum screen size at distant zoom levels. Country fills and colored borders make ownership visible across the terrain.
+Player names and live troop totals appear together on high-contrast labels, scaled together with their territory and inset within its projected borders, including holes and narrow regions. Country fills and colored borders make ownership visible across the terrain.
 
 Cities, factories, harbors, oil rigs, defenses, missile silos and SAM launchers have geometry above the ground. Harbors face nearby water. Warships have naval camouflage, turrets and radar; trade ships carry colored cargo; invasion transports have open troop decks. Ships interpolate between simulation updates. Nuclear missiles rise above the map, and impacts create expanding, fading mushroom clouds and shock rings.
 
@@ -31,3 +31,5 @@ The gallery is at `http://localhost:9010/dev/3d-preview.html`. It uses synthetic
 `tests/client/Scene3D.test.ts` checks elevated terrain projection/picking, the accelerated intersection against Three.js triangle raycasting, anchored zoom, finite geometry for every unit type, and distinct ship silhouettes. The focused input, settings, oil-economy and rendering checks pass.
 
 This is a procedural art implementation, not Civilization VI's asset fidelity. The 3D scene has a bounded terrain mesh and instanced vegetation, but very large endgame fleets still need performance profiling. Cosmetic skins, railway drawing and the existing day/night postprocessing remain features of the classic 2D renderer. The visual camera height does not change simulation movement, attack ranges or line of sight.
+
+Label fitting caches results by placement and ownership changes in nearby 64-tile chunks. Troop-only updates keep the cached fit; captures and terrain changes invalidate it. Unchanged selection rings and cleared trees reuse their GPU data. Shadows refresh at 10 Hz while geometry continues rendering each frame, and 2D-only border/defense computations are skipped in 3D mode. Run `node --import tsx tests/perf/client/LabelFitPerf.ts` for the isolated label-fit benchmark (not a whole-game FPS measurement).

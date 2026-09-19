@@ -1305,7 +1305,9 @@ export class GPURenderer {
 
   draw(): void {
     this.uploadTextures();
-    this.computeTextures();
+    // Keep shared state current, but only compute 2D-only borders and
+    // defense coverage when the classic renderer will actually use them.
+    if (this.camera.tilt <= 0.5) this.computeTextures();
     this.renderFrame();
   }
 
