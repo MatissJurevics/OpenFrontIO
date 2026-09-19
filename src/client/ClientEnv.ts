@@ -154,6 +154,12 @@ export class ClientEnv {
   // read from different sources (window.BOOTSTRAP_CONFIG vs process.env) but
   // the derived logic is identical. Consolidate into a shared helper that
   // takes a source so we don't have to keep them in sync by hand.
+  static standalone(): boolean {
+    return (
+      typeof window !== "undefined" &&
+      window.BOOTSTRAP_CONFIG?.standalone === true
+    );
+  }
   static env(): GameEnv {
     return ClientEnv.get().gameEnv;
   }

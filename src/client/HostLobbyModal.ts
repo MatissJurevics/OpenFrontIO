@@ -688,6 +688,7 @@ export class HostLobbyModal extends BaseModal {
       // Dev skips the entitlement gate (matching the server) so the
       // listing flow is testable locally.
       this.canListPublicly =
+        ClientEnv.standalone() ||
         ClientEnv.env() === GameEnv.Dev ||
         (userMe !== false && userMe.player.canCreatePublicLobbies);
     });

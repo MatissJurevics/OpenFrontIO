@@ -312,7 +312,7 @@ export async function startWorker() {
 
       // Dev has no subscription backend; skip the check so the feature is
       // testable locally (same precedent as Turnstile).
-      if (ServerEnv.env() !== GameEnv.Dev) {
+      if (ServerEnv.env() !== GameEnv.Dev && !ServerEnv.standalone()) {
         const userMe = await getUserMe(token);
         if (userMe.type === "error") {
           log.warn(
@@ -522,7 +522,7 @@ export async function startWorker() {
         // API. Runs before the rejoin attempt so a pre-start identity
         // change on refresh is screened before it is applied.
         let verifySkipped = false;
-        if (ServerEnv.env() !== GameEnv.Dev) {
+        if (ServerEnv.env() !== GameEnv.Dev && !ServerEnv.standalone()) {
           const game = gm.game(clientMsg.gameID);
           const stored = game?.storedIdentity(persistentId) ?? null;
           const isReadmit = game?.wasAdmitted(persistentId) ?? false;

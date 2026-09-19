@@ -34,6 +34,7 @@ declare global {
     // a static page (docs/MultiServer.md, "Server list v2") carries none of
     // it — the API's list answers instead.
     BOOTSTRAP_CONFIG?: {
+      standalone?: boolean;
       gitCommit?: string;
       assetManifest?: AssetManifest;
       cdnBase?: string;
@@ -664,6 +665,12 @@ export class Config {
           ),
           constructionDuration: this.instantBuild() ? 0 : 2 * 10,
           upgradable: true,
+        };
+        break;
+      case UnitType.OilRig:
+        info = {
+          cost: this.costWrapper(() => 125_000, UnitType.OilRig),
+          constructionDuration: this.instantBuild() ? 0 : 50,
         };
         break;
       case UnitType.Factory:

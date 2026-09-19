@@ -49,6 +49,13 @@ export interface BuildItemDisplay {
 export const buildTable: BuildItemDisplay[][] = [
   [
     {
+      unitType: UnitType.OilRig,
+      icon: assetUrl("images/OilRigIcon.svg"),
+      description: "build_menu.desc.oil_rig",
+      key: "unit_type.oil_rig",
+      countable: true,
+    },
+    {
       unitType: UnitType.AtomBomb,
       icon: atomBombIcon,
       description: "build_menu.desc.atom_bomb",

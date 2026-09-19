@@ -243,6 +243,7 @@ export async function rankedCheckinPass(
  * mode — over a single shared gate, so a drain is announced once.
  */
 export function startRankedCheckinLoops(deps: RankedCheckinDeps): void {
+  if (ServerEnv.standalone()) return;
   const gate = new RankedCheckinGate(deps.isActive, deps.log);
   for (const mode of ["1v1", "2v2"] as const) {
     startPolling(

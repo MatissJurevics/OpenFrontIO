@@ -17,6 +17,7 @@ const BUILDING_ORDER = {
   city: 1,
   port: 2,
   fact: 3,
+  oil: 7,
   defp: 4,
   silo: 5,
   saml: 6,
@@ -38,6 +39,7 @@ const UNIT_LABEL_KEYS = {
   city: "unit_type.city",
   defp: "unit_type.defense_post",
   fact: "unit_type.factory",
+  oil: "unit_type.oil_rig",
   port: "unit_type.port",
   saml: "unit_type.sam_launcher",
   silo: "unit_type.missile_silo",
@@ -220,8 +222,9 @@ export class PlayerStatsTable extends LitElement {
             "player_stats_table.piracy",
             "player_stats_table.trains",
             "player_stats_table.trains_external",
+            "player_stats_table.oil",
           ],
-          [{ values: slots(stats?.gold, 6) }],
+          [{ values: slots(stats?.gold, 7) }],
         )}
         ${statsSection(
           "player_stats_table.diplomacy_stats",

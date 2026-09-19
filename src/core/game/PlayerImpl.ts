@@ -1591,6 +1591,25 @@ export class PlayerImpl implements Player {
       case UnitType.DefensePost:
       case UnitType.SAMLauncher:
       case UnitType.City:
+        return this.landBasedStructureSpawn(targetTile, validTiles);
+      case UnitType.OilRig: {
+        if (
+          !this.mg.isValidRef(targetTile) ||
+          !this.mg.isLand(targetTile) ||
+          !this.mg.oilFields().fieldAt(targetTile)
+        )
+          return false;
+        const field = this.mg.oilFields().fieldAt(targetTile)!;
+        return (
+          (validTiles ?? this.validStructureSpawnTiles(targetTile)).find(
+            (t) =>
+              this.mg.isLand(t) &&
+              !this.mg.isImpassable(t) &&
+              this.mg.owner(t) === this &&
+              this.mg.oilFields().fieldAt(t)?.id === field.id,
+          ) ?? false
+        );
+      }
       case UnitType.Factory:
         return this.landBasedStructureSpawn(targetTile, validTiles);
       default:

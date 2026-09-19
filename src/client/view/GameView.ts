@@ -23,6 +23,7 @@ import {
   MotionPlanRecord,
   unpackMotionPlans,
 } from "../../core/game/MotionPlans";
+import { getOilFields, OilFields } from "../../core/game/OilFields";
 import { TerrainMapData } from "../../core/game/TerrainMapLoader";
 import { TerraNulliusImpl } from "../../core/game/TerraNulliusImpl";
 import { UnitGrid, UnitPredicate } from "../../core/game/UnitGrid";
@@ -153,6 +154,10 @@ export class GameView implements GameMap {
 
   private _map: GameMap;
 
+  oilFields(): OilFields {
+    return getOilFields(this._map);
+  }
+
   constructor(
     public worker: WorkerClient,
     private _config: Config,
@@ -165,6 +170,7 @@ export class GameView implements GameMap {
   ) {
     this._map = this._mapData.gameMap;
     this.lastUpdate = null;
+    getOilFields(this._map);
     this.unitGrid = new UnitGrid(this._map);
     this._cosmetics = new Map(
       humans.map((h) => [h.clientID, h.cosmetics ?? {}]),

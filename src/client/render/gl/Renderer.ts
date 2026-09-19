@@ -1347,10 +1347,13 @@ export class GPURenderer {
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     // Map layers sit between terrain and territory.
-    for (const layerPass of this.mapLayerPasses.values()) {
-      layerPass.draw(cam);
+    for (const layer of this.storedLayers) {
+      if (!layer.aboveTerritory) this.mapLayerPasses.get(layer.id)?.draw(cam);
     }
     if (pe.territory) this.territoryPass.draw(cam);
+    for (const layer of this.storedLayers) {
+      if (layer.aboveTerritory) this.mapLayerPasses.get(layer.id)?.draw(cam);
+    }
   }
 
   private renderOverlays(cam: Float32Array, zoom: number): void {

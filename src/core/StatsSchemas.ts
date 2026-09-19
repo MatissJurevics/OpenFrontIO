@@ -36,6 +36,7 @@ export const otherUnits = [
   "silo",
   "saml",
   "fact",
+  "oil",
 ] as const;
 export const OtherUnitSchema = z.enum(otherUnits);
 export type OtherUnit = z.infer<typeof OtherUnitSchema>;
@@ -46,7 +47,8 @@ export type OtherUnitType =
   | UnitType.Port
   | UnitType.SAMLauncher
   | UnitType.Warship
-  | UnitType.Factory;
+  | UnitType.Factory
+  | UnitType.OilRig;
 
 export const unitTypeToOtherUnit = {
   [UnitType.City]: "city",
@@ -56,6 +58,7 @@ export const unitTypeToOtherUnit = {
   [UnitType.SAMLauncher]: "saml",
   [UnitType.Warship]: "wshp",
   [UnitType.Factory]: "fact",
+  [UnitType.OilRig]: "oil",
 } as const satisfies Record<OtherUnitType, OtherUnit>;
 
 // Attacks
@@ -106,6 +109,7 @@ export const GOLD_INDEX_WAR = 1; // Gold earned by conquering players
 export const GOLD_INDEX_TRADE = 2; // Gold earned by trade ships
 export const GOLD_INDEX_STEAL = 3; // Gold earned by capturing trade ships
 export const GOLD_INDEX_TRAIN_SELF = 4; // Gold earned by own trains
+export const GOLD_INDEX_OIL = 6; // Gold earned by land oil rigs
 export const GOLD_INDEX_TRAIN_OTHER = 5; // Gold earned by other players trains
 
 // Other Units

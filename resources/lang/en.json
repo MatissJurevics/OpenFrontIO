@@ -164,6 +164,7 @@
       "hydrogen_bomb": "Large explosion",
       "mirv": "Huge explosion, only targets selected player",
       "missile_silo": "Used to launch nukes",
+      "oil_rig": "Extracts oil on land fields and sells it for gold. Each field has a shared production limit. Extra rigs divide the same output.",
       "port": "Sends trade ships to generate gold",
       "sam_launcher": "Defends against incoming nukes",
       "warship": "Captures trade ships, destroys ships and boats"
@@ -1541,6 +1542,18 @@
     "tutorial": "TUTORIAL",
     "warning": "WARNING"
   },
+  "oil": {
+    "available": "Capacity available — each rig earns 1,000 gold / sec.",
+    "capacity": "Capacity: {capacity} rigs · {tiles} tiles",
+    "field": "Field {id}",
+    "hint": "Hover or tap an amber field to inspect it. Brighter areas contain richer oil deposits.",
+    "income": "Your output: {income} gold / sec",
+    "none": "No oil here. Build rigs on amber land fields.",
+    "overlay": "Oil fields",
+    "renewable": "Renewable oil · shared field output",
+    "rigs": "Active rigs: {total} · Yours: {mine}",
+    "saturated": "At capacity — more rigs share the same output."
+  },
   "overtime": {
     "first_place": "1st: {name} ({pct}%)",
     "started": "Overtime! The territory needed to win is now dropping.",
@@ -1632,6 +1645,7 @@
     "launched": "Launched",
     "lost": "Lost",
     "nuke_stats": "Nuke Statistics",
+    "oil": "Oil",
     "piracy": "Piracy",
     "sent": "Sent",
     "ship_arrivals": "Ship Arrivals",
@@ -2115,6 +2129,7 @@
     "hydrogen_bomb": "Hydrogen Bomb",
     "mirv": "MIRV",
     "missile_silo": "Missile Silo",
+    "oil_rig": "Oil rig",
     "port": "Port",
     "sam_launcher": "SAM Launcher",
     "warship": "Warship"
