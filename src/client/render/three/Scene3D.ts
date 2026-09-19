@@ -4,10 +4,13 @@ import type {
   GhostPreviewData,
   NameEntry,
   NukeTrajectoryData,
+  PlayerState,
+  PlayerStatic,
   TerrainRect,
   UnitState,
 } from "../types";
 import { createModel } from "./Models3D";
+import { playerLabelWidth, troopLabel } from "./PlayerLabels3D";
 
 import {
   configureCamera,
@@ -49,6 +52,8 @@ export class Scene3D {
   private oilPixels: Uint8ClampedArray | null = null;
   private oilVisible = true;
   private oilAlpha = 0.65;
+  private playerIDs = new Map<string, number>();
+  private viewScale = 1;
   private labels = new Map<string, T.Sprite>();
   private displayNames = new Map<string, string>();
   private forest: {
@@ -210,7 +215,7 @@ export class Scene3D {
             j < this.owners.length &&
             (this.owners[j] & 4095) !== owner,
         );
-        c.lerp(own, border ? 0.94 : 0.055);
+        c.lerp(own, border ? 1 : 0.65);
       }
       c.convertLinearToSRGB();
       const o = i * 4;
@@ -293,6 +298,8 @@ export class Scene3D {
     this.forest = { trees, trunks, locations };
   }
   setCamera(state: SceneCameraState) {
+    this.viewScale = state.scale;
+    for (const label of this.labels.values()) this.resizeLabel(label);
     const { x, y, scale, width, height } = state;
     this.renderer.getSize(this.frameSize);
     if (this.frameSize.x !== width || this.frameSize.y !== height)
@@ -741,7 +748,22 @@ export class Scene3D {
     }
     this.labels.clear();
   }
-  updateNames(names: Map<string, NameEntry>) {
+  registerPlayers(players: readonly PlayerStatic[]) {
+    for (const p of players) this.playerIDs.set(p.id, p.smallID);
+    this.setDisplayNames(
+      new Map(players.map((p) => [p.id, p.displayName || p.name])),
+    );
+  }
+  private resizeLabel(sprite: T.Sprite) {
+    const width =
+      playerLabelWidth(sprite.userData.countrySize ?? 0, this.viewScale) /
+      this.viewScale;
+    sprite.scale.set(width, (width * 144) / 512, 1);
+  }
+  updateNames(
+    names: Map<string, NameEntry>,
+    players: Map<number, PlayerState>,
+  ) {
     for (const [id, s] of this.labels)
       if (!names.has(id)) {
         this.scene.remove(s);
@@ -754,39 +776,65 @@ export class Scene3D {
       if (!sprite) {
         const canvas = document.createElement("canvas");
         canvas.width = 512;
-        canvas.height = 64;
-        const ctx = canvas.getContext("2d")!;
-        ctx.font = "600 30px system-ui";
-        ctx.textAlign = "center";
-        ctx.lineWidth = 5;
-        ctx.strokeStyle = "#152b30";
-        ctx.strokeText(
-          this.displayNames.get(n.playerID) ?? n.playerID,
-          256,
-          42,
-          490,
-        );
-        ctx.fillStyle = "#fff5d1";
-        ctx.fillText(
-          this.displayNames.get(n.playerID) ?? n.playerID,
-          256,
-          42,
-          490,
-        );
+        canvas.height = 144;
+        const texture = new T.CanvasTexture(canvas);
+        texture.colorSpace = T.SRGBColorSpace;
         sprite = new T.Sprite(
           new T.SpriteMaterial({
-            map: new T.CanvasTexture(canvas),
+            map: texture,
             transparent: true,
             depthTest: false,
+            depthWrite: false,
+            toneMapped: false,
           }),
         );
-        sprite.renderOrder = 10;
+        sprite.renderOrder = 20;
         this.labels.set(id, sprite);
         this.scene.add(sprite);
       }
-      sprite.position.set(n.x, this.elevation(n.x, n.y) + 4, n.y);
-      const size = Math.max(12, Math.min(90, n.size * 1.7));
-      sprite.scale.set(size, size / 8, 1);
+      const smallID = this.playerIDs.get(n.playerID),
+        player = smallID === undefined ? undefined : players.get(smallID);
+      const name = this.displayNames.get(n.playerID) ?? n.playerID;
+      const troops = troopLabel(player?.troops);
+      const owner =
+        smallID === undefined
+          ? new T.Color(0xffffff)
+          : new T.Color(
+              this.palette[smallID * 4],
+              this.palette[smallID * 4 + 1],
+              this.palette[smallID * 4 + 2],
+            );
+      const color = `#${owner.getHexString()}`;
+      const stamp = `${name}|${troops}|${color}`;
+      if (sprite.userData.stamp !== stamp) {
+        const texture = sprite.material.map as T.CanvasTexture,
+          canvas = texture.image as HTMLCanvasElement,
+          ctx = canvas.getContext("2d")!;
+        ctx.clearRect(0, 0, 512, 144);
+        ctx.fillStyle = "rgba(9,18,29,0.9)";
+        ctx.beginPath();
+        ctx.roundRect(2, 2, 508, 140, 18);
+        ctx.fill();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 5;
+        ctx.stroke();
+        ctx.textAlign = "center";
+        ctx.font = "700 48px system-ui";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(name, 256, 61, 475);
+        ctx.font = "700 43px system-ui";
+        ctx.fillStyle = "#ffe7a0";
+        ctx.fillText(troops, 256, 116, 475);
+        texture.needsUpdate = true;
+        sprite.userData.stamp = stamp;
+      }
+      sprite.userData.countrySize = n.size;
+      this.resizeLabel(sprite);
+      sprite.position.set(
+        n.x,
+        surfaceHeight(this.ground.geometry, n.x, n.y) + 10,
+        n.y,
+      );
     }
   }
   updateTerrain(rects: readonly TerrainRect[], bytes: Uint8Array) {

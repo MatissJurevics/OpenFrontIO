@@ -1,5 +1,5 @@
 import { Scene3D } from "../render/three/Scene3D";
-import type { UnitState } from "../render/types";
+import type { PlayerState, PlayerStatic, UnitState } from "../render/types";
 const w = 500,
   h = 400,
   terrain = new Uint8Array(w * h),
@@ -34,6 +34,26 @@ const scene = new Scene3D(
   palette,
 );
 scene.setOwners(owners);
+scene.registerPlayers([
+  {
+    id: "blue",
+    smallID: 1,
+    name: "Blue Republic",
+    displayName: "Blue Republic",
+  },
+  { id: "gold", smallID: 2, name: "Golden Union", displayName: "Golden Union" },
+] as PlayerStatic[]);
+scene.updateNames(
+  new Map([
+    ["blue", { playerID: "blue", x: 205, y: 135, size: 20 }],
+    ["gold", { playerID: "gold", x: 335, y: 135, size: 20 }],
+  ]),
+  new Map([
+    [1, { smallID: 1, troops: 125430 } as PlayerState],
+    [2, { smallID: 2, troops: 2400500 } as PlayerState],
+  ]),
+);
+
 const types = [
   "City",
   "Factory",

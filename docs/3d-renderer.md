@@ -1,8 +1,10 @@
 # 3D map rendering
 
-The default view uses a Three.js scene with an orthographic camera, raised terrain, directional lighting, shadows, forests, animated water, and original procedural models. Its warm stone buildings, colored roofs, and landscape palette take visual inspiration from Civilization VI; no Civilization assets are included.
+The default view uses a Three.js scene with an orthographic camera, raised terrain, directional lighting, shadows, forests, animated water, and original procedural models. Its landscape palette takes visual inspiration from Civilization VI, while cities use modern glass towers, apartment blocks and streets; no Civilization assets are included.
 
 Use **I** for 3D, **O** for the classic 2D view, or the sidebar buttons. Drag and scroll retain the normal map controls. The selected view is saved locally. The simulation and multiplayer protocol are unchanged.
+
+Player names and live troop totals appear together on high-contrast labels, with a minimum screen size at distant zoom levels. Country fills and colored borders make ownership visible across the terrain.
 
 Cities, factories, harbors, oil rigs, defenses, missile silos and SAM launchers have geometry above the ground. Harbors face nearby water. Warships have naval camouflage, turrets and radar; trade ships carry colored cargo; invasion transports have open troop decks. Ships interpolate between simulation updates. Nuclear missiles rise above the map, and impacts create expanding, fading mushroom clouds and shock rings.
 

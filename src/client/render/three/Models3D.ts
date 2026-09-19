@@ -159,25 +159,79 @@ export function createModel(type: string, color = 0x3578a5): T.Group {
     box(0, 0, 0, 0.2, 0.9, 2, 0x5c6668);
     add(new T.ConeGeometry(0.55, 3, 10), 0xff9b2d, 0, -1, 0, Math.PI);
   } else if (type === "City") {
-    cylinder(0, -0.3, 0, 11, 0.5, 0xbca77b);
-    for (let i = 0; i < 14; i++) {
-      const a = i * 2.399;
-      const r = 4 + Math.floor(i / 5) * 2.7;
-      house(Math.cos(a) * r, Math.sin(a) * r, 2.4, 2.8, 2 + (i % 3));
+    // Concrete street grid, glass offices and flat-roof apartment blocks.
+    box(0, -0.3, 0, 23, 0.5, 21, 0x9fa8a9);
+    box(0, 0.21, 0, 23, 0.08, 2, 0x343e46);
+    box(0, 0.21, 0, 2, 0.08, 21, 0x343e46);
+    for (let i = -9; i <= 9; i += 3) {
+      box(i, 0.31, 0, 1, 0.03, 0.12, 0xf6df97);
+      box(0, 0.31, i, 0.12, 0.03, 1, 0xf6df97);
     }
-    box(0, 0, 0, 4, 5, 4, 0xebdfbc);
-    cylinder(0, 5, 0, 1.7, 2, color);
-    add(
-      new T.SphereGeometry(1.7, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2),
-      0xcfad53,
-      0,
-      7,
-      0,
-    );
-    cylinder(0, 8, 0, 0.15, 2, 0xcfad53);
-    for (let i = 0; i < 8; i++)
-      box(13 + i * 0.65, 0, -3, 0.4, 0.13, 9, i % 2 ? 0xa7a248 : 0x7d893b);
-    box(0, 0.05, 11, 18, 0.1, 1, 0xb69b6c);
+    const tower = (
+      x: number,
+      z: number,
+      w: number,
+      d: number,
+      h: number,
+      glass: boolean,
+    ) => {
+      box(x, 0.3, z, w, h, d, glass ? 0x385a6c : 0xc5cbd0);
+      box(x, h + 0.3, z, w + 0.25, 0.35, d + 0.25, 0xe4e7e6);
+      box(x, h + 0.65, z, w * 0.4, 0.65, d * 0.35, 0x6b777d);
+      for (let y = 1.3; y < h; y += 1.65) {
+        box(
+          x,
+          y,
+          z + d / 2 + 0.03,
+          w * 0.85,
+          0.72,
+          0.07,
+          glass ? 0x9bc7db : 0x354f62,
+        );
+        box(
+          x,
+          y,
+          z - d / 2 - 0.03,
+          w * 0.85,
+          0.72,
+          0.07,
+          glass ? 0x729cb9 : 0x354f62,
+        );
+        box(
+          x + w / 2 + 0.03,
+          y,
+          z,
+          0.07,
+          0.72,
+          d * 0.85,
+          glass ? 0x82b2c7 : 0x354f62,
+        );
+        box(
+          x - w / 2 - 0.03,
+          y,
+          z,
+          0.07,
+          0.72,
+          d * 0.85,
+          glass ? 0x658ba8 : 0x354f62,
+        );
+      }
+      box(x, 0.5, z + d / 2 + 0.08, w * 0.7, 0.55, 0.12, color);
+    };
+    tower(-4, -4, 4, 4, 15, true);
+    tower(3.5, -4, 3.5, 4, 11, true);
+    tower(-4, 4, 4.5, 3.5, 7, false);
+    tower(4, 4, 4, 4, 9, true);
+    tower(-8, 4, 2.3, 4, 4, false);
+    tower(8, -4, 2.2, 5, 6, false);
+    cylinder(-4, 15.8, -4, 0.12, 3.5, 0xc4d2db);
+    for (const z of [-8, 8]) {
+      box(4, 0.25, z, 8, 0.15, 2, 0x4e7252);
+      for (let x = 1; x <= 7; x += 3) {
+        cylinder(x, 0.4, z, 0.15, 1, 0x6b5c46);
+        add(new T.SphereGeometry(0.65, 6, 5), 0x5b8d52, x, 1.6, z);
+      }
+    }
   } else if (type === "Factory") {
     box(0, -0.2, 0, 16, 0.4, 12, 0xa99c81);
     house(-2, 0, 8, 6, 3.5);

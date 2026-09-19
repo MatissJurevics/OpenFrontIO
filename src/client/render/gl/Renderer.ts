@@ -664,9 +664,7 @@ export class GPURenderer {
       terrainSource(),
       paletteData,
     );
-    this.scene3D.setDisplayNames(
-      new Map(header.players.map((p) => [p.id, p.displayName || p.name])),
-    );
+    this.scene3D.registerPlayers(header.players);
     this.startLoop();
   }
 
@@ -789,9 +787,7 @@ export class GPURenderer {
     this.updatePalette(paletteData);
     this.uploadPatterns(patternMeta, patternData);
 
-    this.scene3D.setDisplayNames(
-      new Map(players.map((p) => [p.id, p.displayName || p.name])),
-    );
+    this.scene3D.registerPlayers(players);
     this.namePass.addPlayers(players, this.paletteData);
     for (const p of players) {
       if (p.team !== null) this.playerTeams.set(p.smallID, p.team);
@@ -943,7 +939,7 @@ export class GPURenderer {
     snap: boolean,
     statusData?: Map<number, PlayerStatusData>,
   ): void {
-    this.scene3D.updateNames(names);
+    this.scene3D.updateNames(names, players);
     this.namePass.updateNames(names, players, snap, statusData);
 
     // Extract local player's allies + teammates for SAM radius coloring
