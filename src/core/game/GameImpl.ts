@@ -42,6 +42,7 @@ import {
 import { GameMap, TileRef } from "./GameMap";
 import { GameUpdate, GameUpdateType } from "./GameUpdates";
 import { MotionPlanRecord, packMotionPlans } from "./MotionPlans";
+import { getOilFields, OilFields } from "./OilFields";
 import { PlayerImpl } from "./PlayerImpl";
 import { RailNetwork } from "./RailNetwork";
 import { createRailNetwork } from "./RailNetworkImpl";
@@ -134,6 +135,7 @@ export class GameImpl implements Game {
     this._terraNullius = new TerraNulliusImpl();
     this._width = _map.width();
     this._height = _map.height();
+    getOilFields(this._map);
     this.unitGrid = new UnitGrid(this._map);
     this._waterManager = new WaterManager(
       this._map,
@@ -150,6 +152,10 @@ export class GameImpl implements Game {
     console.log(
       `[GameImpl] Constructor total: ${(performance.now() - constructorStart).toFixed(0)}ms`,
     );
+  }
+
+  oilFields(): OilFields {
+    return getOilFields(this._map);
   }
 
   private populateTeams() {

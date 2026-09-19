@@ -147,6 +147,9 @@ export class ConstructionExecution implements Execution {
       case UnitType.City:
         this.mg.addExecution(new CityExecution(this.structure!));
         break;
+      case UnitType.OilRig:
+        // Global OilEconomyExecution handles production across all owners.
+        break;
       case UnitType.Factory:
         this.mg.addExecution(new FactoryExecution(this.structure!));
         break;
@@ -166,6 +169,7 @@ export class ConstructionExecution implements Execution {
       case UnitType.SAMLauncher:
       case UnitType.City:
       case UnitType.Factory:
+      case UnitType.OilRig:
         return true;
       default:
         return false;

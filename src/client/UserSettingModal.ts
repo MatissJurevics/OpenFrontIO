@@ -1541,6 +1541,20 @@ export class UserSettingModal extends BaseModal {
         ${translateText("user_setting.camera_movement")}
       </h2>
 
+      ${["view2D", "view3D"].map(
+        (action) =>
+          html`<setting-keybind
+            action=${action}
+            label=${translateText(
+              action === "view2D" ? "map_view.flat" : "map_view.tilted",
+            )}
+            description=${translateText("map_view.description")}
+            defaultKey=${this.defaultKeybinds[action]}
+            .value=${this.getKeyValue(action)}
+            .display=${this.getKeyChar(action)}
+            @change=${this.handleKeybindChange}
+          ></setting-keybind>`,
+      )}
       <setting-keybind
         action="centerCamera"
         label=${translateText("user_setting.center_camera")}

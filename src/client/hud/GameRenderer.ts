@@ -97,6 +97,9 @@ export function createRenderer(
   }
   gameLeftSidebar.game = game;
   gameLeftSidebar.eventBus = eventBus;
+  gameLeftSidebar.transformHandler = transformHandler;
+  gameLeftSidebar.onOilVisibilityChange = (visible) =>
+    view.setLayerVisible("oil", visible);
 
   const controlPanel = document.querySelector("control-panel") as ControlPanel;
   if (!(controlPanel instanceof ControlPanel)) {

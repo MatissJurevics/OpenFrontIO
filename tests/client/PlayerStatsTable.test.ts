@@ -31,7 +31,7 @@ const stats: PlayerStats = {
     mirv: [61n, 62n, 63n],
     mirvw: [71n, 72n, 73n],
   },
-  gold: [81n, 82n, 83n, 84n, 85n, 86n],
+  gold: [81n, 82n, 83n, 84n, 85n, 86n, 87n],
   units: {
     city: [91n, 92n, 93n, 94n],
     defp: [101n, 102n, 103n, 104n],
@@ -39,6 +39,7 @@ const stats: PlayerStats = {
     saml: [121n, 122n, 123n, 124n],
     silo: [131n, 132n, 133n, 134n],
     fact: [141n, 142n, 143n, 144n],
+    oil: [161n, 162n, 163n, 164n],
     wshp: [151n, 152n, 153n, 154n],
   },
 };
@@ -107,6 +108,7 @@ describe("PlayerStatsTable", () => {
       "player_stats_table.piracy": "84",
       "player_stats_table.trains": "85",
       "player_stats_table.trains_external": "86",
+      "player_stats_table.oil": "87",
     });
   });
 
@@ -168,9 +170,22 @@ describe("PlayerStatsTable", () => {
         text(candidate.querySelector("th")) === "player_stats_table.building",
     );
     expect(buildings, "buildings table should exist").toBeDefined();
-    // The six structures, with the warship row moved to its own section.
-    expect(buildings?.querySelectorAll("tbody tr")).toHaveLength(6);
+    // The seven structures, with the warship row moved to its own section.
+    expect(buildings?.querySelectorAll("tbody tr")).toHaveLength(7);
     expect(buildings?.textContent).not.toContain("unit_type.warship");
+    expect(
+      columnsOf(
+        table,
+        "player_stats_table.building_stats",
+        "unit_type.oil_rig",
+      ),
+    ).toEqual({
+      "player_stats_table.building": "unit_type.oil_rig",
+      "player_stats_table.built": "161",
+      "player_stats_table.destroyed": "162",
+      "player_stats_table.captured": "163",
+      "player_stats_table.lost": "164",
+    });
 
     expect(columnsOf(table, "player_stats_table.warship_stats")).toEqual({
       "player_stats_table.built": "151",
@@ -203,6 +218,7 @@ describe("PlayerStatsTable", () => {
       "player_stats_table.piracy": "0",
       "player_stats_table.trains": "0",
       "player_stats_table.trains_external": "0",
+      "player_stats_table.oil": "0",
     });
   });
 
@@ -216,6 +232,7 @@ describe("PlayerStatsTable", () => {
       "player_stats_table.piracy": "0",
       "player_stats_table.trains": "0",
       "player_stats_table.trains_external": "0",
+      "player_stats_table.oil": "0",
     });
     expect(columnsOf(table, "player_stats_table.diplomacy_stats")).toEqual({
       "player_stats_table.betrayals": "0",

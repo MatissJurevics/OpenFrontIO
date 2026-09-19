@@ -1,3 +1,4 @@
+import { getOilFields, OIL_LAYER_ID } from "../../core/game/OilFields";
 /**
  * MapLayerController — loads map-layer images (off the critical path) and
  * applies initial visibility from user settings.
@@ -25,37 +26,62 @@ export class MapLayerController implements Controller {
     private readonly gameMapSize: GameMapSize,
     private readonly mapLoader: GameMapLoader,
     private readonly abortSignal: AbortSignal,
-  ) {}
+  ) {
+    this.gameMap.layers = [
+      ...(this.gameMap.layers ?? []).filter(
+        (layer) => layer.id !== OIL_LAYER_ID,
+      ),
+      {
+        id: OIL_LAYER_ID,
+        placement: "land",
+        aboveTerritory: true,
+        alpha: 0.65,
+      },
+    ];
+  }
 
   init() {
-    if (!this.gameMap.layers?.length) return;
+    void this.load().catch((e) =>
+      console.warn("[MapLayerController] Failed to load map layers:", e),
+    );
+  }
 
-    if (this.gameMap.layerImages) {
-      // Images already loaded (e.g. from cache) — set up immediately.
-      this.view.setMapLayers(this.gameMap.layers, this.gameMap.layerImages);
-      this.applyVisibility();
-      this.applyAlpha();
-    } else {
-      // Layer images loaded off the critical path. Start fetching now;
-      // the renderer tolerates missing layers (warn + skip) until they
-      // arrive.
-      loadLayerImages(
-        this.gameMapType,
-        this.gameMapSize,
-        this.mapLoader,
-        this.gameMap.layers,
-      )
-        .then((images) => {
-          if (!this.abortSignal.aborted) {
-            this.view.setMapLayers(this.gameMap.layers!, images);
-            this.applyVisibility();
-            this.applyAlpha();
-          }
-        })
-        .catch((e) =>
-          console.warn("[MapLayerController] Failed to load layer images:", e),
-        );
+  private async load() {
+    const layers = this.gameMap.layers!;
+    const baseLayers = layers.filter((layer) => layer.id !== OIL_LAYER_ID);
+    const images = new Map(
+      this.gameMap.layerImages ??
+        (await loadLayerImages(
+          this.gameMapType,
+          this.gameMapSize,
+          this.mapLoader,
+          baseLayers,
+        )),
+    );
+    const map = this.gameMap.gameMap;
+    const oil = getOilFields(map);
+    const rgba = new Uint8ClampedArray(map.width() * map.height() * 4);
+    for (let t = 0; t < oil.richness.length; t++) {
+      if (!oil.richness[t]) continue;
+      const i = t * 4;
+      rgba[i] = 240;
+      rgba[i + 1] = 115 + Math.floor(oil.richness[t] * 0.45);
+      rgba[i + 2] = 25;
+      rgba[i + 3] = 125 + Math.floor(oil.richness[t] * 0.5);
     }
+    const oilImage = await createImageBitmap(
+      new ImageData(rgba, map.width(), map.height()),
+    );
+    if (this.abortSignal.aborted) {
+      oilImage.close();
+      return;
+    }
+    images.set(OIL_LAYER_ID, oilImage);
+    // Retain alongside ordinary layer bitmaps for WebGL context restoration.
+    this.gameMap.layerImages = images;
+    this.view.setMapLayers(layers, images);
+    this.applyVisibility();
+    this.applyAlpha();
   }
 
   private applyVisibility() {

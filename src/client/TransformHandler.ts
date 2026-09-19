@@ -1,8 +1,10 @@
 import { EventBus, GameEvent } from "../core/EventBus";
 import { Cell } from "../core/game/Game";
+import { UserSettings } from "../core/game/UserSettings";
 import {
   CenterCameraEvent,
   DragEvent,
+  MapViewModeEvent,
   ZOOM_DELTA_DIVISOR,
   ZoomEvent,
 } from "./InputHandler";
@@ -31,6 +33,20 @@ export const CAMERA_MAX_SPEED = 15;
 export const CAMERA_SMOOTHING = 0.03;
 
 export class TransformHandler {
+  projection3D: {
+    prepare: () => void;
+    project: (x: number, y: number) => { x: number; y: number };
+    pick: (x: number, y: number) => { x: number; y: number };
+  } | null = null;
+  private viewSettings = new UserSettings();
+  public tiltedView = this.viewSettings.mapView3D();
+  public viewTilt = this.tiltedView ? 1 : 0;
+  public setViewMode(tilted: boolean) {
+    this.tiltedView = tilted;
+    this.viewTilt = tilted ? 1 : 0;
+    this.viewSettings.setMapView3D(tilted);
+    this.changed = true;
+  }
   public scale: number = 1.8;
   private _boundingRect: DOMRect;
   public offsetX: number = -350;
@@ -54,6 +70,7 @@ export class TransformHandler {
     this.eventBus.on(GoToPositionEvent, (e) => this.onGoToPosition(e));
     this.eventBus.on(GoToUnitEvent, (e) => this.onGoToUnit(e));
     this.eventBus.on(CenterCameraEvent, () => this.centerCamera());
+    this.eventBus.on(MapViewModeEvent, (e) => this.setViewMode(e.tilted));
   }
 
   public updateCanvasBoundingRect() {
@@ -90,6 +107,10 @@ export class TransformHandler {
   }
 
   worldToCanvasCoordinates(cell: Cell): { x: number; y: number } {
+    if (this.viewTilt > 0.5 && this.projection3D) {
+      this.projection3D.prepare();
+      return this.projection3D.project(cell.x, cell.y);
+    }
     // Step 1: Convert from Cell coordinates to game coordinates
     // (reverse of Math.floor operation - we'll use the exact values)
     const gameX = cell.x;
@@ -129,7 +150,12 @@ export class TransformHandler {
     screenX: number,
     screenY: number,
   ): { x: number; y: number } {
-    const canvasCoords = this.screenToCanvasCoordinates(screenX, screenY);
+    const r = this.boundingRect();
+    if (this.viewTilt > 0.5 && this.projection3D) {
+      this.projection3D.prepare();
+      return this.projection3D.pick(screenX - r.left, screenY - r.top);
+    }
+    const canvasCoords = { x: screenX - r.left, y: screenY - r.top };
     const gameX =
       (canvasCoords.x - this.game.width() / 2) / this.scale +
       this.offsetX +
@@ -161,27 +187,22 @@ export class TransformHandler {
   }
 
   screenBoundingRect(): [Cell, Cell] {
-    const canvasRect = this.boundingRect();
-    const canvasWidth = canvasRect.width;
-    const canvasHeight = canvasRect.height;
-
-    const LeftX = -this.game.width() / 2 / this.scale + this.offsetX;
-    const TopY = -this.game.height() / 2 / this.scale + this.offsetY;
-
-    const gameLeftX = LeftX + this.game.width() / 2;
-    const gameTopY = TopY + this.game.height() / 2;
-
-    const rightX =
-      (canvasWidth - this.game.width() / 2) / this.scale + this.offsetX;
-    const bottomY =
-      (canvasHeight - this.game.height() / 2) / this.scale + this.offsetY;
-
-    const gameRightX = rightX + this.game.width() / 2;
-    const gameBottomY = bottomY + this.game.height() / 2;
-
+    const r = this.boundingRect();
+    const corners = [
+      [r.left, r.top],
+      [r.right, r.top],
+      [r.left, r.bottom],
+      [r.right, r.bottom],
+    ].map(([x, y]) => this.screenToWorldCoordinatesFloat(x, y));
     return [
-      new Cell(Math.floor(gameLeftX), Math.floor(gameTopY)),
-      new Cell(Math.floor(gameRightX), Math.floor(gameBottomY)),
+      new Cell(
+        Math.floor(Math.min(...corners.map((p) => p.x))),
+        Math.floor(Math.min(...corners.map((p) => p.y))),
+      ),
+      new Cell(
+        Math.ceil(Math.max(...corners.map((p) => p.x))),
+        Math.ceil(Math.max(...corners.map((p) => p.y))),
+      ),
     ];
   }
 
@@ -300,26 +321,20 @@ export class TransformHandler {
 
   onZoom(event: ZoomEvent) {
     this.clearTarget();
-    const oldScale = this.scale;
-    const zoomFactor = 1 + event.delta / ZOOM_DELTA_DIVISOR;
-    this.scale /= zoomFactor;
-
-    // Clamp the scale to prevent extreme zooming
-    this.scale = Math.max(0.2, Math.min(20, this.scale));
-
-    const canvasCoords = this.screenToCanvasCoordinates(event.x, event.y);
-
-    // Calculate the world point we want to zoom towards
-    const zoomPointX =
-      (canvasCoords.x - this.game.width() / 2) / oldScale + this.offsetX;
-    const zoomPointY =
-      (canvasCoords.y - this.game.height() / 2) / oldScale + this.offsetY;
-
-    // Adjust the offset
-    this.offsetX =
-      zoomPointX - (canvasCoords.x - this.game.width() / 2) / this.scale;
-    this.offsetY =
-      zoomPointY - (canvasCoords.y - this.game.height() / 2) / this.scale;
+    const before = this.screenToWorldCoordinatesFloat(event.x, event.y);
+    this.scale = Math.max(
+      0.2,
+      Math.min(20, this.scale / (1 + event.delta / ZOOM_DELTA_DIVISOR)),
+    );
+    for (
+      let i = 0;
+      i < (this.projection3D && this.viewTilt > 0.5 ? 4 : 1);
+      i++
+    ) {
+      const after = this.screenToWorldCoordinatesFloat(event.x, event.y);
+      this.offsetX += before.x - after.x;
+      this.offsetY += before.y - after.y;
+    }
     this.clampOffsets();
     this.changed = true;
   }
@@ -362,8 +377,25 @@ export class TransformHandler {
 
   onMove(event: DragEvent) {
     this.clearTarget();
-    this.offsetX -= event.deltaX / this.scale;
-    this.offsetY -= event.deltaY / this.scale;
+    if (this.viewTilt > 0.5 && this.projection3D) {
+      const r = this.boundingRect();
+      const a = this.screenToWorldCoordinatesFloat(
+        r.left + r.width / 2,
+        r.top + r.height / 2,
+      );
+      const b = this.screenToWorldCoordinatesFloat(
+        r.left + r.width / 2 + event.deltaX,
+        r.top + r.height / 2 + event.deltaY,
+      );
+      this.offsetX -= b.x - a.x;
+      this.offsetY -= b.y - a.y;
+      this.clampOffsets();
+      this.changed = true;
+      return;
+    }
+    const delta = { x: event.deltaX, y: event.deltaY };
+    this.offsetX -= delta.x / this.scale;
+    this.offsetY -= delta.y / this.scale;
     this.clampOffsets();
     this.changed = true;
   }
@@ -395,7 +427,8 @@ export class TransformHandler {
     const mapHeight = this.game.height();
 
     const scHor = (vpWidth / mapWidth) * fit;
-    const scVer = (vpHeight / mapHeight) * fit;
+    const scVer =
+      (vpHeight / (mapHeight * (this.viewTilt > 0.5 ? 0.77 : 1))) * fit;
     const tScale = Math.min(scHor, scVer);
 
     const oHor = (mapWidth - vpWidth) / 2 / tScale;

@@ -432,6 +432,7 @@ function fetchOnce(): Promise<ServerList | null> {
  * rather than to a live server.
  */
 export function startServerListPolling(): void {
+  if (ClientEnv.standalone()) return;
   if (polling) return;
   try {
     if (safeSite() === undefined) return;
@@ -513,6 +514,7 @@ function scheduleNextPoll(gotList: boolean): void {
  * still routes.
  */
 export async function ensureServerList(): Promise<ServerListStatus> {
+  if (ClientEnv.standalone()) return "fallback";
   try {
     if (cached === null) {
       // Join the attempt in flight (the page-load one, usually); otherwise

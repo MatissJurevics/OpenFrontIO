@@ -23,6 +23,7 @@ import {
   hydrogenBombIcon,
   mirvIcon,
   missileSiloIcon,
+  oilRigIcon,
   portIcon,
   samLauncherIcon,
   warshipIcon,
@@ -39,6 +40,7 @@ export class UnitDisplay extends LitElement implements Controller {
   private _cities = 0;
   private _warships = 0;
   private _factories = 0;
+  private _oilRigs = 0;
   private _missileSilo = 0;
   private _port = 0;
   private _defensePost = 0;
@@ -122,6 +124,7 @@ export class UnitDisplay extends LitElement implements Controller {
     this._defensePost = player.totalUnitLevels(UnitType.DefensePost);
     this._samLauncher = player.totalUnitLevels(UnitType.SAMLauncher);
     this._factories = player.totalUnitLevels(UnitType.Factory);
+    this._oilRigs = player.units(UnitType.OilRig).length;
     this._warships = player.totalUnitLevels(UnitType.Warship);
     this.requestUpdate();
   }
@@ -156,6 +159,13 @@ export class UnitDisplay extends LitElement implements Controller {
             UnitType.Factory,
             "factory",
             this.keybinds["buildFactory"]?.key ?? "2",
+          )}
+          ${this.renderUnitItem(
+            oilRigIcon,
+            this._oilRigs,
+            UnitType.OilRig,
+            "oil_rig",
+            "",
           )}
           ${this.renderUnitItem(
             portIcon,
@@ -250,12 +260,12 @@ export class UnitDisplay extends LitElement implements Controller {
         ${hovered
           ? html`
               <div
-                class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 text-gray-200 text-center w-max text-xs bg-gray-800/90 backdrop-blur-xs rounded-sm p-1 z-[100] shadow-lg pointer-events-none"
+                class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 text-gray-200 text-center w-max max-w-[280px] whitespace-normal text-xs bg-gray-800/90 backdrop-blur-xs rounded-sm p-1 z-[100] shadow-lg pointer-events-none"
               >
                 <div class="font-bold text-sm mb-1">
-                  ${translateText(
-                    "unit_type." + structureKey,
-                  )}${` [${displayHotkey}]`}
+                  ${translateText("unit_type." + structureKey)}${displayHotkey
+                    ? ` [${displayHotkey}]`
+                    : ""}
                 </div>
                 <div class="p-2">
                   ${translateText("build_menu.desc." + structureKey)}

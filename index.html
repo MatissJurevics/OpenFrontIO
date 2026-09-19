@@ -154,6 +154,7 @@
     -->
     <script>
       window.BOOTSTRAP_CONFIG = {
+        <%- typeof standalone !== "undefined" ? "standalone: " + standalone + "," : "" %>
         gitCommit: <%- gitCommit %>,
         assetManifest: <%- assetManifest %>,
         cdnBase: <%- cdnBase %>,

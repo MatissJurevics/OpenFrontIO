@@ -3,10 +3,20 @@ import { html, LitElement } from "lit";
 import { customElement, property, query, state } from "lit/decorators.js";
 import { assetUrl } from "../../../core/AssetUrls";
 import type { EventBus } from "../../../core/EventBus";
-import { GameMode, type Team } from "../../../core/game/Game";
+import { GameMode, UnitType, type Team } from "../../../core/game/Game";
+import { OIL_LAYER_ID, oilFieldOutput } from "../../../core/game/OilFields";
+import { UserSettings } from "../../../core/game/UserSettings";
 import type { Controller } from "../../Controller";
+import {
+  MapViewModeEvent,
+  MouseDownEvent,
+  MouseMoveEvent,
+  ToggleStructureEvent,
+} from "../../InputHandler";
+import { isLayerVisible } from "../../MapLayerSettings";
 import { Platform } from "../../Platform";
 import { themeProvider } from "../../theme/ThemeProvider";
+import type { TransformHandler } from "../../TransformHandler";
 import { getTranslatedPlayerTeamLabel, translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { ImmunityBarVisibleEvent } from "./ImmunityTimer";
@@ -39,6 +49,11 @@ export class GameLeftSidebar extends LitElement implements Controller {
   @state()
   private immunityBarVisible = false;
 
+  public transformHandler: TransformHandler;
+  public onOilVisibilityChange: (visible: boolean) => void;
+  @state() private oilTile: number | null = null;
+  private oilSettings = new UserSettings();
+
   private playerColor: Colord = new Colord("#FFFFFF");
   @property({ attribute: false }) public game: GameView | null = null;
   @property({ attribute: false }) public eventBus: EventBus | null = null;
@@ -52,6 +67,18 @@ export class GameLeftSidebar extends LitElement implements Controller {
 
   init() {
     this.isVisible = true;
+    this.eventBus?.on(MapViewModeEvent, () => this.requestUpdate());
+    const inspectOil = (e: MouseMoveEvent | MouseDownEvent) => {
+      const cell = this.transformHandler.screenToWorldCoordinates(e.x, e.y);
+      this.oilTile = this.game?.isValidCoord(cell.x, cell.y)
+        ? this.game.ref(cell.x, cell.y)
+        : null;
+    };
+    this.eventBus?.on(MouseMoveEvent, inspectOil);
+    this.eventBus?.on(MouseDownEvent, inspectOil);
+    this.eventBus?.on(ToggleStructureEvent, (e) => {
+      if (e.structureTypes?.includes(UnitType.OilRig)) this.setOilVisible(true);
+    });
     this.eventBus?.on(SpawnBarVisibleEvent, (e) => {
       this.spawnBarVisible = e.visible;
     });
@@ -89,6 +116,7 @@ export class GameLeftSidebar extends LitElement implements Controller {
       this.isPlayerTeamLabelVisible = false;
     }
 
+    this.requestUpdate();
     this.playerStats?.refresh();
     this.teamStats?.refresh();
   }
@@ -107,6 +135,94 @@ export class GameLeftSidebar extends LitElement implements Controller {
 
   private get isTeamGame(): boolean {
     return this.game?.config().gameConfig().gameMode === GameMode.Team;
+  }
+
+  private setOilVisible(visible: boolean) {
+    const overrides = this.oilSettings.graphicsOverrides();
+    if (isLayerVisible(overrides, OIL_LAYER_ID) === visible) return;
+    this.oilSettings.setGraphicsOverrides({
+      ...overrides,
+      mapLayerVisibility: {
+        ...overrides.mapLayerVisibility,
+        [OIL_LAYER_ID]: visible,
+      },
+    });
+    this.onOilVisibilityChange?.(visible);
+    this.requestUpdate();
+  }
+
+  private renderOilInfo() {
+    const visible = isLayerVisible(
+      this.oilSettings.graphicsOverrides(),
+      OIL_LAYER_ID,
+    );
+    const field =
+      this.oilTile === null
+        ? undefined
+        : this.game?.oilFields().fieldAt(this.oilTile);
+    const rigs = field
+      ? this.game!.units(UnitType.OilRig).filter(
+          (u) =>
+            u.isActive() &&
+            !u.isUnderConstruction() &&
+            this.game!.isLand(u.tile()) &&
+            this.game!.oilFields().fieldAt(u.tile())?.id === field.id,
+        )
+      : [];
+    const mine = rigs.filter((u) => u.owner() === this.game?.myPlayer()).length;
+    const income =
+      field && rigs.length
+        ? Math.floor(
+            (oilFieldOutput(field.capacity, rigs.length) * mine) / rigs.length,
+          )
+        : 0;
+    return html`<section class="mt-2 text-xs text-slate-200 max-w-[260px]">
+      <button
+        class="rounded border border-amber-500/60 px-2 py-1 text-amber-300 hover:bg-amber-500/20"
+        aria-pressed=${visible}
+        @click=${() => this.setOilVisible(!visible)}
+      >
+        ${translateText("oil.overlay")} ${visible ? "●" : "○"}
+      </button>
+      ${visible
+        ? html`<div class="mt-2 space-y-1" aria-live="polite">
+            <div
+              class="h-1 rounded bg-linear-to-r from-amber-800 to-yellow-300"
+            ></div>
+            ${field
+              ? html`
+                  <strong class="text-amber-300"
+                    >${translateText("oil.field", { id: field.id })}</strong
+                  >
+                  <div>
+                    ${translateText("oil.capacity", {
+                      capacity: field.capacity,
+                      tiles: field.tiles,
+                    })}
+                  </div>
+                  <div>
+                    ${translateText("oil.rigs", { total: rigs.length, mine })}
+                  </div>
+                  <div>${translateText("oil.income", { income })}</div>
+                  <div class="text-slate-400">
+                    ${translateText(
+                      rigs.length >= field.capacity
+                        ? "oil.saturated"
+                        : "oil.available",
+                    )}
+                  </div>
+                `
+              : html`<div>
+                  ${translateText(
+                    this.oilTile === null ? "oil.hint" : "oil.none",
+                  )}
+                </div>`}
+            <div class="text-[10px] text-slate-400">
+              ${translateText("oil.renewable")}
+            </div>
+          </div>`
+        : null}
+    </section>`;
   }
 
   render() {
@@ -199,6 +315,27 @@ export class GameLeftSidebar extends LitElement implements Controller {
               </div>
             `
           : null}
+        <div
+          class="flex gap-1 mt-2"
+          role="group"
+          aria-label=${translateText("map_view.label")}
+        >
+          ${[false, true].map(
+            (tilted) =>
+              html`<button
+                class="rounded border border-slate-400/50 px-2 py-1 text-xs text-slate-100 hover:bg-slate-600/70"
+                aria-pressed=${this.transformHandler?.tiltedView === tilted}
+                title=${translateText(
+                  tilted ? "map_view.tilted_hint" : "map_view.flat_hint",
+                )}
+                @click=${() =>
+                  this.eventBus?.emit(new MapViewModeEvent(tilted))}
+              >
+                ${tilted ? "3D" : "2D"}
+              </button>`,
+          )}
+        </div>
+        ${this.renderOilInfo()}
         <div class="flex flex-col gap-2 min-w-0 w-full">
           <player-stats
             class=${this.isPlayerStatsShown ? "block min-w-0" : "hidden"}

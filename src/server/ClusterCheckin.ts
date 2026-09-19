@@ -79,6 +79,7 @@ const RefusalBodySchema = z.object({
  * this server only with players whose page reads this site's list.
  */
 export function registeredSite(): string | undefined {
+  if (ServerEnv.standalone()) return undefined;
   return ServerEnv.siteHost() ?? ServerEnv.publicHost();
 }
 
@@ -88,6 +89,7 @@ export function registeredSite(): string | undefined {
  * Every deployed host has one and registers under its own site.
  */
 export function checkinBody(liveGames: number): CheckinBody | null {
+  if (ServerEnv.standalone()) return null;
   const host = ServerEnv.publicHost();
   if (host === undefined) return null;
   const machine = ServerEnv.machine();

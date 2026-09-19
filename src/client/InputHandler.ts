@@ -178,6 +178,10 @@ export class GameSpeedUpIntentEvent implements GameEvent {}
 
 export class GameSpeedDownIntentEvent implements GameEvent {}
 
+export class MapViewModeEvent implements GameEvent {
+  constructor(public readonly tilted: boolean) {}
+}
+
 export class CenterCameraEvent implements GameEvent {
   constructor() {}
 }
@@ -355,6 +359,12 @@ export class InputHandler {
     this.addKeybindAndEvent(this.keybinds.retaliateAttack, () => {
       this.eventBus.emit(new DoRetaliateAttackEvent());
     });
+    this.addKeybindAndEvent(this.keybinds.view2D, () =>
+      this.eventBus.emit(new MapViewModeEvent(false)),
+    );
+    this.addKeybindAndEvent(this.keybinds.view3D, () =>
+      this.eventBus.emit(new MapViewModeEvent(true)),
+    );
     this.addKeybindAndEvent(this.keybinds.centerCamera, () => {
       this.eventBus.emit(new CenterCameraEvent());
     });

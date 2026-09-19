@@ -1,3 +1,4 @@
+import { Scene3D, type SceneCameraState } from "../three/Scene3D";
 /**
  * GPURenderer v2 — normalized render pipeline.
  *
@@ -105,6 +106,10 @@ const SAM_RADIUS_HIGHLIGHT_TYPES = new Set([
 const GRID_VIEW_KEY = "renderer:grid_view_enabled";
 
 export class GPURenderer {
+  readonly scene3D: Scene3D;
+  configure3D(state: SceneCameraState) {
+    this.scene3D.setCamera(state);
+  }
   private gl: WebGL2RenderingContext;
   private camera: Camera;
   private res: GPUResources;
@@ -652,6 +657,14 @@ export class GPURenderer {
     // FFA shows raw skin colors; teams multiply skin by team primary color.
     this.territoryPass.setTeamMode(this.playerTeams.size > 0);
 
+    this.scene3D = new Scene3D(
+      canvas,
+      mapW,
+      mapH,
+      terrainSource(),
+      paletteData,
+    );
+    this.scene3D.registerPlayers(header.players);
     this.startLoop();
   }
 
@@ -682,8 +695,8 @@ export class GPURenderer {
     this.camera.resize(cssWidth, cssHeight);
   }
 
-  setCameraState(x: number, y: number, z: number): void {
-    this.camera.setCameraState(x, y, z);
+  setCameraState(x: number, y: number, z: number, tilt = 0): void {
+    this.camera.setCameraState(x, y, z, tilt);
   }
 
   // ---------------------------------------------------------------------------
@@ -694,6 +707,7 @@ export class GPURenderer {
     tileState: Uint16Array,
     trailState: Uint16Array,
   ): void {
+    this.scene3D.setOwners(tileState);
     this.territoryPass.setLiveRef(tileState);
     this.trailPass.setLiveRef(trailState);
   }
@@ -702,6 +716,7 @@ export class GPURenderer {
     tileState: Uint16Array,
     changedTiles: readonly number[],
   ): void {
+    this.scene3D.setOwners(tileState, changedTiles);
     this.territoryPass.applyLiveDelta(tileState, changedTiles);
   }
 
@@ -720,6 +735,7 @@ export class GPURenderer {
 
   /** Re-upload palette data to the GPU texture (e.g. when players appear after initial startup). */
   updatePalette(paletteData: Float32Array): void {
+    this.scene3D.setPalette(paletteData);
     const gl = this.gl;
     // Mutate the stored array in-place so all passes sharing the reference see the update.
     this.paletteData.set(paletteData);
@@ -771,6 +787,7 @@ export class GPURenderer {
     this.updatePalette(paletteData);
     this.uploadPatterns(patternMeta, patternData);
 
+    this.scene3D.registerPlayers(players);
     this.namePass.addPlayers(players, this.paletteData);
     for (const p of players) {
       if (p.team !== null) this.playerTeams.set(p.smallID, p.team);
@@ -905,6 +922,7 @@ export class GPURenderer {
   }
 
   updateUnits(units: Map<number, UnitState>, gameTick: number): void {
+    this.scene3D.updateUnits(units);
     this.lastUnits = units;
     this.frameTick++;
     this.unitPass.setFrameTick(this.frameTick);
@@ -921,6 +939,7 @@ export class GPURenderer {
     snap: boolean,
     statusData?: Map<number, PlayerStatusData>,
   ): void {
+    this.scene3D.updateNames(names, players);
     this.namePass.updateNames(names, players, snap, statusData);
 
     // Extract local player's allies + teammates for SAM radius coloring
@@ -940,6 +959,7 @@ export class GPURenderer {
 
   /** Re-resolve player name strings live (e.g. anonymous-names toggle). */
   refreshNames(displayNames: Map<string, string>): void {
+    this.scene3D.setDisplayNames(displayNames);
     this.namePass.refreshNames(displayNames);
   }
 
@@ -969,7 +989,10 @@ export class GPURenderer {
   }
 
   applyDeadUnits(deadUnits: DeadUnitFx[]): void {
-    if (deadUnits.length > 0) this.fxPass.applyDeadUnits(deadUnits);
+    this.scene3D.detonate(deadUnits);
+    if (deadUnits.length > 0) {
+      this.fxPass.applyDeadUnits(deadUnits);
+    }
   }
 
   applyRailroadDust(tileRefs: number[]): void {
@@ -986,6 +1009,7 @@ export class GPURenderer {
    */
   applyTerrainRects(rects: readonly TerrainRect[], bytes: Uint8Array): void {
     if (rects.length === 0) return;
+    this.scene3D.updateTerrain(rects, bytes);
     this.terrainPass.applyTerrainRects(rects, bytes);
     this.railroadPass.applyTerrainRects(rects, bytes);
     // Update the shared R8UI terrain-bytes texture used by map-layer passes.
@@ -1056,10 +1080,15 @@ export class GPURenderer {
   }
 
   updateAttackRings(rings: AttackRingInput[]): void {
+    this.scene3D.rings(
+      "attacks",
+      rings.map((r) => ({ ...r, radius: 5, color: 0xffc374 })),
+    );
     this.fxPass.updateAttackRings(rings);
   }
 
   updateGhostPreview(data: GhostPreviewData | null): void {
+    this.scene3D.setGhost(data);
     this.structurePass.updateGhostPreview(data);
     this.railroadPass.updateGhostPreview(data);
     this.rangeCirclePass.updateGhostPreview(data);
@@ -1094,14 +1123,33 @@ export class GPURenderer {
   }
 
   updateNukeTrajectory(data: NukeTrajectoryData | null): void {
+    this.scene3D.trajectory(data);
     this.nukeTrajectoryPass.update(data);
   }
 
   updateNukeTelegraphs(data: NukeTelegraphData[]): void {
+    this.scene3D.rings(
+      "nuke-targets",
+      data.map((d) => ({
+        x: d.x,
+        y: d.y,
+        radius: d.outerRadius,
+        color: d.relation === 2 ? 0xff7553 : 0xffdf8a,
+      })),
+    );
     this.nukeTelegraphPass.update(data);
   }
 
   updateSpawnOverlay(inSpawnPhase: boolean, centers: SpawnCenter[]): void {
+    this.scene3D.rings(
+      "spawn",
+      centers.map((c) => ({
+        x: c.x,
+        y: c.y,
+        radius: 12,
+        color: c.isSelf ? 0xfff0aa : 0xff8866,
+      })),
+    );
     this.inSpawnPhase = inSpawnPhase;
     this.spawnOverlayPass.update(centers);
   }
@@ -1180,6 +1228,7 @@ export class GPURenderer {
   // ---------------------------------------------------------------------------
 
   setSelectedUnits(unitIds: readonly number[]): void {
+    this.scene3D.setSelected(unitIds);
     // Copy in (callers may mutate their array).
     this.selectedUnitIds.length = 0;
     for (let i = 0; i < unitIds.length; i++) {
@@ -1233,6 +1282,7 @@ export class GPURenderer {
   // ---------------------------------------------------------------------------
 
   showMoveIndicator(tileX: number, tileY: number, ownerID: number): void {
+    this.scene3D.move(tileX, tileY);
     const off = ownerID * 4;
     const r = Math.min(
       1,
@@ -1289,6 +1339,11 @@ export class GPURenderer {
   }
 
   private renderFrame(): void {
+    this.scene3D.render(this.camera.tilt > 0.5);
+    if (this.camera.tilt > 0.5) {
+      this.fxPass.tick();
+      return;
+    }
     const cam = this.camera.getMatrix();
     const zoom = this.camera.zoom;
     const cw = this.canvas.width;
@@ -1347,10 +1402,13 @@ export class GPURenderer {
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     // Map layers sit between terrain and territory.
-    for (const layerPass of this.mapLayerPasses.values()) {
-      layerPass.draw(cam);
+    for (const layer of this.storedLayers) {
+      if (!layer.aboveTerritory) this.mapLayerPasses.get(layer.id)?.draw(cam);
     }
     if (pe.territory) this.territoryPass.draw(cam);
+    for (const layer of this.storedLayers) {
+      if (layer.aboveTerritory) this.mapLayerPasses.get(layer.id)?.draw(cam);
+    }
   }
 
   private renderOverlays(cam: Float32Array, zoom: number): void {
@@ -1413,6 +1471,7 @@ export class GPURenderer {
    * between the terrain and territory passes.
    */
   setMapLayers(layers: MapLayer[], images: Map<string, ImageBitmap>): void {
+    this.scene3D.setLayers(images);
     // Dispose any previous layer passes.
     for (const p of this.mapLayerPasses.values()) p.dispose();
     this.mapLayerPasses.clear();
@@ -1444,11 +1503,13 @@ export class GPURenderer {
 
   /** Toggle visibility of a single layer (driven by graphics settings). */
   setLayerVisible(layerId: string, visible: boolean): void {
+    this.scene3D.setLayerVisible(layerId, visible);
     this.mapLayerPasses.get(layerId)?.setVisible(visible);
   }
 
   /** Set the alpha multiplier for a single layer (0–1). */
   setLayerAlpha(layerId: string, alpha: number): void {
+    this.scene3D.setLayerAlpha(layerId, alpha);
     this.mapLayerPasses.get(layerId)?.setAlpha(alpha);
   }
 
@@ -1473,6 +1534,7 @@ export class GPURenderer {
   // ---------------------------------------------------------------------------
 
   dispose(): void {
+    this.scene3D.dispose();
     this.stopLoop();
     for (const p of this.mapLayerPasses.values()) p.dispose();
     this.mapLayerPasses.clear();

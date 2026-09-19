@@ -20,6 +20,7 @@ import {
   UT_DEFENSE_POST,
   UT_FACTORY,
   UT_MISSILE_SILO,
+  UT_OIL_RIG,
   UT_PORT,
   UT_SAM_LAUNCHER,
 } from "../../types";
@@ -53,6 +54,7 @@ const STRUCTURE_ORDER = [
   UT_DEFENSE_POST,
   UT_SAM_LAUNCHER,
   UT_MISSILE_SILO,
+  UT_OIL_RIG,
 ] as const;
 
 const ATLAS_COLS = STRUCTURE_ORDER.length;
@@ -282,10 +284,22 @@ export class StructurePass {
     img.crossOrigin = "anonymous";
     img.src = iconAtlasUrl;
     await img.decode();
+    const oil = new Image();
+    oil.crossOrigin = "anonymous";
+    oil.src = assetUrl("images/OilRigIcon.svg");
+    await oil.decode();
+    // Preserve the six upstream atlas columns and append our rig glyph.
+    const atlas = document.createElement("canvas");
+    const cellWidth = img.width / 6;
+    atlas.width = cellWidth * ATLAS_COLS;
+    atlas.height = img.height;
+    const context = atlas.getContext("2d")!;
+    context.drawImage(img, 0, 0);
+    context.drawImage(oil, cellWidth * 6, 0, cellWidth, img.height);
     const gl = this.gl;
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, this.atlasTex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, atlas);
     gl.generateMipmap(gl.TEXTURE_2D);
     gl.texParameteri(
       gl.TEXTURE_2D,

@@ -1,3 +1,4 @@
+import type { SceneCameraState } from "../three/Scene3D";
 /**
  * MapRenderer — public facade for the WebGL map renderer.
  *
@@ -141,10 +142,19 @@ export class MapRenderer {
     return this.renderer?.glLimited ?? null;
   }
 
+  configure3D(state: SceneCameraState) {
+    this.renderer?.configure3D(state);
+  }
+  project3D(x: number, y: number) {
+    return this.renderer?.scene3D.project(x, y) ?? { x, y };
+  }
+  pick3D(x: number, y: number) {
+    return this.renderer?.scene3D.pick(x, y) ?? { x, y };
+  }
   // ---- Camera ----
 
-  setCameraState(x: number, y: number, z: number): void {
-    this.renderer?.setCameraState(x, y, z);
+  setCameraState(x: number, y: number, z: number, tilt = 0): void {
+    this.renderer?.setCameraState(x, y, z, tilt);
   }
 
   // ---- Data upload ----

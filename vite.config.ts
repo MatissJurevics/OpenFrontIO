@@ -216,6 +216,7 @@ export default defineConfig(({ mode }) => {
     assetManifest: JSON.stringify(assetManifest),
     cdnBase: JSON.stringify(cdnBase),
     gameEnv: JSON.stringify(env.GAME_ENV ?? "dev"),
+    standalone: JSON.stringify(env.STANDALONE === "true"),
     cluster: devClusterJson,
     instanceLetter: JSON.stringify(devInstanceLetter),
     turnstileSiteKey: JSON.stringify(

@@ -18,6 +18,7 @@ import {
   BOMB_INDEX_INTERCEPT,
   BOMB_INDEX_LAND,
   BOMB_INDEX_LAUNCH,
+  GOLD_INDEX_OIL,
   GOLD_INDEX_STEAL,
   GOLD_INDEX_TRADE,
   GOLD_INDEX_TRAIN_OTHER,
@@ -326,6 +327,10 @@ export class StatsImpl implements Stats {
 
   bombIntercept(player: Player, type: NukeType, count: BigIntLike): void {
     this._addBomb(player, type, BOMB_INDEX_INTERCEPT, count);
+  }
+
+  goldOil(player: Player, gold: BigIntLike): void {
+    this._addGold(player, GOLD_INDEX_OIL, gold);
   }
 
   goldWork(player: Player, gold: BigIntLike): void {

@@ -695,7 +695,7 @@ export class GameModeSelector extends LitElement {
             this.openHostLobby,
             SECONDARY_ACTION,
             undefined,
-            true,
+            !ClientEnv.standalone(),
           )}
           ${this.renderSmallActionCard(
             translateText("mode_selector.ranked_title"),
@@ -709,7 +709,7 @@ export class GameModeSelector extends LitElement {
             this.openJoinLobby,
             SECONDARY_ACTION,
             this.hostedLobbyCount(),
-            true,
+            !ClientEnv.standalone(),
           )}
         </div>
 
@@ -830,13 +830,13 @@ export class GameModeSelector extends LitElement {
   };
 
   private openHostLobby = () => {
-    if (this.blockedFromApiAction()) return;
+    if (!ClientEnv.standalone() && this.blockedFromApiAction()) return;
     if (!this.validateUsername()) return;
     (document.querySelector("host-lobby-modal") as HostLobbyModal)?.open();
   };
 
   private openJoinLobby = () => {
-    if (this.blockedFromApiAction()) return;
+    if (!ClientEnv.standalone() && this.blockedFromApiAction()) return;
     if (!this.validateUsername()) return;
     (document.querySelector("join-lobby-modal") as JoinLobbyModal)?.open();
   };

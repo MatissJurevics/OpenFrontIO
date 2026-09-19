@@ -110,6 +110,7 @@ export interface Stats {
 
   // Player earns gold from workers
   goldWork(player: Player, gold: number | bigint): void;
+  goldOil(player: Player, gold: number | bigint): void;
 
   // Player builds a unit of type
   unitBuild(player: Player, type: OtherUnitType): void;

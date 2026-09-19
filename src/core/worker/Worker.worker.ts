@@ -159,9 +159,15 @@ ctx.addEventListener("message", async (e: MessageEvent<MainThreadMessage>) => {
           } as InitializedMessage);
           return gr;
         });
+        await gameRunner;
       } catch (error) {
         console.error("Failed to initialize game runner:", error);
-        throw error;
+        gameRunner = null;
+        sendMessage({
+          type: "initialization_error",
+          id: message.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
       break;
 

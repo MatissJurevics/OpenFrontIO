@@ -28,6 +28,7 @@ async function createGameWorker(): Promise<Worker> {
 export class WorkerClient {
   private worker: Worker | null = null;
   private isInitialized = false;
+  private cancelInitialization: (() => void) | null = null;
   private messageHandlers: Map<string, (message: WorkerMessage) => void>;
   private gameUpdateCallback?: (
     update: GameUpdateViewData | ErrorUpdate,
@@ -81,27 +82,60 @@ export class WorkerClient {
     return new Promise((resolve, reject) => {
       const messageId = generateID();
 
+      const cleanup = () => {
+        clearTimeout(timer);
+        this.messageHandlers.delete(messageId);
+        worker.removeEventListener("error", onError);
+        worker.removeEventListener("messageerror", onMessageError);
+        this.cancelInitialization = null;
+      };
+      const fail = (error: Error) => {
+        cleanup();
+        worker.terminate();
+        this.worker = null;
+        reject(error);
+      };
+      const onError = (event: ErrorEvent) =>
+        fail(
+          new Error(
+            `Worker startup failed: ${event.message || "worker script could not load"}`,
+          ),
+        );
+      const onMessageError = () =>
+        fail(new Error("Worker startup failed: unreadable worker response"));
+      const timer = setTimeout(
+        () =>
+          fail(
+            new Error(
+              "Worker initialization timeout: game data did not finish loading. Check the server connection and try again.",
+            ),
+          ),
+        60000,
+      );
+      this.cancelInitialization = () =>
+        fail(new Error("Worker initialization cancelled"));
+      worker.addEventListener("error", onError);
+      worker.addEventListener("messageerror", onMessageError);
       this.messageHandlers.set(messageId, (message) => {
         if (message.type === "initialized") {
+          cleanup();
           this.isInitialized = true;
           resolve();
+        } else if (message.type === "initialization_error") {
+          fail(new Error(`Worker initialization failed: ${message.error}`));
         }
       });
-
-      worker.postMessage({
-        type: "init",
-        id: messageId,
-        gameStartInfo: this.gameStartInfo,
-        clientID: this.clientID,
-        cdnBase: getCdnBase(),
-      });
-
-      setTimeout(() => {
-        if (!this.isInitialized) {
-          this.messageHandlers.delete(messageId);
-          reject(new Error("Worker initialization timeout"));
-        }
-      }, 60000);
+      try {
+        worker.postMessage({
+          type: "init",
+          id: messageId,
+          gameStartInfo: this.gameStartInfo,
+          clientID: this.clientID,
+          cdnBase: getCdnBase(),
+        });
+      } catch (error) {
+        fail(error instanceof Error ? error : new Error(String(error)));
+      }
     });
   }
 
@@ -327,6 +361,8 @@ export class WorkerClient {
   }
 
   cleanup() {
+    this.cancelInitialization?.();
+    this.isInitialized = false;
     this.worker?.terminate();
     this.messageHandlers.clear();
     this.gameUpdateCallback = undefined;

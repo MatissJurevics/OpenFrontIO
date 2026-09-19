@@ -40,6 +40,8 @@ export interface MapManifest {
 export type LayerPlacement = "land" | "water";
 
 export interface MapLayer {
+  /** Thematic overlays remain readable above ownership fills. */
+  aboveTerritory?: boolean;
   /** Unique identifier — also the PNG filename (without extension). */
   id: string;
   /** Whether the layer sits on land or water tiles. */

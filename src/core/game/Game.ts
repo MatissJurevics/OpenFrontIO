@@ -191,6 +191,8 @@ function unitTypeGroup<T extends readonly UnitType[]>(types: T) {
   };
 }
 
+import type { OilFields } from "./OilFields";
+
 export enum UnitType {
   TransportShip = "Transport",
   Warship = "Warship",
@@ -208,6 +210,7 @@ export enum UnitType {
   MIRVWarhead = "MIRV Warhead",
   Train = "Train",
   Factory = "Factory",
+  OilRig = "Oil Rig",
 }
 
 export enum TrainType {
@@ -237,6 +240,7 @@ export const Structures = unitTypeGroup([
   UnitType.MissileSilo,
   UnitType.Port,
   UnitType.Factory,
+  UnitType.OilRig,
 ] as const);
 
 export const BuildMenus = unitTypeGroup([
@@ -309,6 +313,7 @@ export interface UnitParamsMap {
   };
 
   [UnitType.Factory]: Record<string, never>;
+  [UnitType.OilRig]: Record<string, never>;
 
   [UnitType.MissileSilo]: Record<string, never>;
 
@@ -827,6 +832,7 @@ export interface Game extends GameMap {
   elapsedGameSeconds(): number;
 
   // Game State
+  oilFields(): OilFields;
   ticks(): Tick;
   inSpawnPhase(): boolean;
   endSpawnPhase(): void;
