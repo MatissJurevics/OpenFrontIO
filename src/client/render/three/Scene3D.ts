@@ -10,7 +10,7 @@ import type {
   UnitState,
 } from "../types";
 import { createModel } from "./Models3D";
-import { playerLabelWidth, troopLabel } from "./PlayerLabels3D";
+import { TerritoryLabelCache, troopLabel } from "./PlayerLabels3D";
 
 import {
   configureCamera,
@@ -29,6 +29,9 @@ export class Scene3D {
   private colors: Uint8Array;
   private texture: T.DataTexture;
   private owners: Uint16Array;
+  private labelFits: TerritoryLabelCache;
+  private lastShadowUpdate = -Infinity;
+  private clearedTrees = new Set<number>();
   private models = new Map<
     number,
     {
@@ -70,6 +73,7 @@ export class Scene3D {
     palette: Float32Array,
   ) {
     this.palette = palette;
+    this.labelFits = new TerritoryLabelCache(width, height);
     this.renderer = new T.WebGLRenderer({
       antialias: true,
       alpha: false,
@@ -81,6 +85,7 @@ export class Scene3D {
     canvas.insertAdjacentElement("afterend", this.renderer.domElement);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.autoUpdate = false;
     this.renderer.shadowMap.type = T.PCFShadowMap;
     this.renderer.toneMapping = T.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
@@ -241,7 +246,8 @@ export class Scene3D {
   }
   setOwners(owners: Uint16Array, refs?: readonly number[]) {
     this.owners = owners;
-    this.paint(refs);
+    this.labelFits.invalidate(refs);
+    if (!refs || refs.length) this.paint(refs);
   }
   setPalette(palette: Float32Array) {
     this.palette = palette;
@@ -372,7 +378,11 @@ export class Scene3D {
       const hidden = new T.Matrix4().makeScale(0, 0, 0);
       let changed = false;
       locations.forEach((p, i) => {
-        if (occupied.has(`${Math.floor(p.x / 13)},${Math.floor(p.z / 13)}`)) {
+        if (
+          !this.clearedTrees.has(i) &&
+          occupied.has(`${Math.floor(p.x / 13)},${Math.floor(p.z / 13)}`)
+        ) {
+          this.clearedTrees.add(i);
           trees.setMatrixAt(i, hidden);
           trunks.setMatrixAt(i, hidden);
           changed = true;
@@ -617,6 +627,12 @@ export class Scene3D {
       return true;
     });
     if (this.waveTexture) this.waveTexture.offset.y = now * 0.000003;
+    // Shadows may lag motion by at most 100 ms; geometry and input still
+    // render every frame. Avoid drawing the whole scene twice at display Hz.
+    if (now - this.lastShadowUpdate >= 100) {
+      this.renderer.shadowMap.needsUpdate = true;
+      this.lastShadowUpdate = now;
+    }
     this.renderer.render(this.scene, this.camera);
   }
   setSelected(ids: readonly number[]) {
@@ -627,6 +643,10 @@ export class Scene3D {
     rings: readonly { x: number; y: number; radius: number; color: number }[],
   ) {
     const old = this.markers.get(key);
+    const stamp = rings
+      .map((r) => `${r.x},${r.y},${r.radius},${r.color}`)
+      .join(";");
+    if (old?.userData.stamp === stamp) return;
     if (old) {
       this.scene.remove(old);
       old.geometry.dispose();
@@ -666,6 +686,7 @@ export class Scene3D {
         opacity: 0.85,
       }),
     );
+    line.userData.stamp = stamp;
     line.renderOrder = 5;
     this.scene.add(line);
     this.markers.set(key, line);
@@ -819,14 +840,12 @@ export class Scene3D {
         texture.needsUpdate = true;
         sprite.userData.stamp = stamp;
       }
-      const labelWidth = playerLabelWidth(
+      const labelWidth = this.labelFits.fit(
         n.size,
         n.x,
         n.y,
         smallID,
         this.owners,
-        this.width,
-        this.height,
         (x, y) => surfaceHeight(this.ground.geometry, x, y),
       );
       sprite.scale.set(labelWidth, (labelWidth * 144) / 512, 1);
@@ -839,6 +858,8 @@ export class Scene3D {
     }
   }
   updateTerrain(rects: readonly TerrainRect[], bytes: Uint8Array) {
+    this.labelFits.invalidate();
+    for (const marker of this.markers.values()) delete marker.userData.stamp;
     let offset = 0;
     for (const r of rects)
       for (let y = 0; y < r.h; y++) {

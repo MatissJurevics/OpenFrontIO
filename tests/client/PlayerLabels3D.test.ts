@@ -2,6 +2,7 @@ import * as T from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   playerLabelWidth,
+  TerritoryLabelCache,
   troopLabel,
 } from "../../src/client/render/three/PlayerLabels3D";
 import { Scene3D } from "../../src/client/render/three/Scene3D";
@@ -58,6 +59,7 @@ describe("readable strategic labels", () => {
       displayNames: new Map(),
       playerIDs: new Map(),
       palette: new Float32Array(32).fill(0.5),
+      labelFits: new TerritoryLabelCache(100, 100),
       width: 100,
       height: 100,
       owners: new Uint16Array(10000).fill(3),
@@ -81,4 +83,56 @@ describe("readable strategic labels", () => {
     scene.updateNames(new Map(), new Map());
     expect(scene.scene.children).toHaveLength(0);
   });
+});
+
+describe("territory label fit caching", () => {
+  it("reuses unchanged fits but invalidates captures, placement, and terrain", () => {
+    const owners = new Uint16Array(512 * 512).fill(3);
+    const cache = new TerritoryLabelCache(512, 512);
+    const elevation = vi.fn(() => 0);
+    const fit = (x = 100) => cache.fit(20, x, 100, 3, owners, elevation);
+    const initial = fit();
+    elevation.mockClear();
+    for (let tick = 0; tick < 100; tick++) fit();
+    expect(elevation).not.toHaveBeenCalled();
+    cache.invalidate([500 * 512 + 500]);
+    expect(fit()).toBe(initial);
+    expect(elevation).not.toHaveBeenCalled();
+    // Same live array, changed tile inside the search area.
+    owners[100 * 512 + 105] = 2;
+    cache.invalidate([100 * 512 + 105]);
+    expect(fit()).toBeLessThan(initial);
+    expect(elevation).toHaveBeenCalled();
+    elevation.mockClear();
+    fit(99);
+    expect(elevation).toHaveBeenCalled();
+    elevation.mockClear();
+    cache.invalidate();
+    fit(99);
+    expect(elevation).toHaveBeenCalled();
+    owners[100 * 512 + 99] = 2;
+    cache.invalidate([100 * 512 + 99]);
+    expect(fit(99)).toBe(0);
+  });
+});
+
+it("reuses unchanged selection ring geometry and replaces changed rings", () => {
+  const scene = Object.assign(Object.create(Scene3D.prototype), {
+    scene: new T.Scene(),
+    markers: new Map(),
+    ground: new T.Mesh(new T.PlaneGeometry(100, 100, 1, 1)),
+  }) as Scene3D;
+  const ring = { x: 50, y: 50, radius: 9, color: 0xffffff };
+  scene.rings("selection", [ring]);
+  const first = scene.scene.children[0] as T.LineSegments;
+  const dispose = vi.spyOn(first.geometry, "dispose");
+  for (let frame = 0; frame < 60; frame++)
+    scene.rings("selection", [{ ...ring }]);
+  expect(scene.scene.children[0]).toBe(first);
+  expect(dispose).not.toHaveBeenCalled();
+  scene.rings("selection", [{ ...ring, x: 51 }]);
+  expect(scene.scene.children[0]).not.toBe(first);
+  expect(dispose).toHaveBeenCalledOnce();
+  scene.rings("selection", []);
+  expect(scene.scene.children).toHaveLength(0);
 });

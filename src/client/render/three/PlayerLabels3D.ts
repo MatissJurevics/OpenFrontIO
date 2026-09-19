@@ -69,3 +69,71 @@ export function troopLabel(troops: number | undefined): string {
     ? "Troops: —"
     : `Troops: ${compact.format(Math.max(0, Math.floor(troops)))}`;
 }
+
+/** Cache fits until placement, terrain, or ownership in their search area changes.
+ * Ownership arrays are mutated in place, so invalidation uses explicit deltas.
+ */
+export class TerritoryLabelCache {
+  private readonly columns: number;
+  private readonly revisions: Float64Array;
+  private generation = 0;
+  private readonly entries = new Map<number, { key: string; width: number }>();
+  constructor(
+    private readonly width: number,
+    private readonly height: number,
+  ) {
+    this.columns = Math.ceil(width / 64);
+    this.revisions = new Float64Array(this.columns * Math.ceil(height / 64));
+  }
+  invalidate(refs?: readonly number[]) {
+    if (!refs) {
+      this.generation++;
+      return;
+    }
+    const chunks = new Set<number>();
+    for (const ref of refs)
+      chunks.add(
+        Math.floor((ref % this.width) / 64) +
+          Math.floor(Math.floor(ref / this.width) / 64) * this.columns,
+      );
+    for (const chunk of chunks) this.revisions[chunk]++;
+  }
+  fit(
+    size: number,
+    x: number,
+    y: number,
+    owner: number | undefined,
+    owners: Uint16Array,
+    elevation: (x: number, y: number) => number,
+  ): number {
+    if (!owner || size <= 0 || !Number.isFinite(size)) return 0;
+    const half = (size * 1.7) / 2;
+    const radiusY = (half * LABEL_ASPECT + 35 * HEIGHT_Y) / GROUND_Y + 1;
+    let revision = 0;
+    const left = Math.max(0, Math.floor((x - half - 2) / 64));
+    const right = Math.min(this.columns - 1, Math.floor((x + half + 2) / 64));
+    const top = Math.max(0, Math.floor((y - radiusY - 2) / 64));
+    const bottom = Math.min(
+      Math.ceil(this.height / 64) - 1,
+      Math.floor((y + radiusY + 2) / 64),
+    );
+    for (let cy = top; cy <= bottom; cy++)
+      for (let cx = left; cx <= right; cx++)
+        revision += this.revisions[cy * this.columns + cx];
+    const key = `${size},${x},${y},${this.generation},${revision}`;
+    const previous = this.entries.get(owner);
+    if (previous?.key === key) return previous.width;
+    const width = playerLabelWidth(
+      size,
+      x,
+      y,
+      owner,
+      owners,
+      this.width,
+      this.height,
+      elevation,
+    );
+    this.entries.set(owner, { key, width });
+    return width;
+  }
+}
