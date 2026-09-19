@@ -570,7 +570,29 @@ function mountWebGLFrameLoop(
   });
   resizeObs.observe(glCanvas);
 
+  const prepare3D = () => {
+    const scale = transformHandler.scale;
+    view.configure3D({
+      x:
+        transformHandler.offsetX +
+        mapWidth / 2 +
+        (cachedCanvasW - mapWidth) / (2 * scale),
+      y:
+        transformHandler.offsetY +
+        mapHeight / 2 +
+        (cachedCanvasH - mapHeight) / (2 * scale),
+      scale,
+      width: cachedCanvasW,
+      height: cachedCanvasH,
+    });
+  };
+  transformHandler.projection3D = {
+    prepare: prepare3D,
+    project: (x, y) => view.project3D(x, y),
+    pick: (x, y) => view.pick3D(x, y),
+  };
   const syncCamera = (): void => {
+    prepare3D();
     const scale = transformHandler.scale;
     const dpr = renderDpr();
     const centerX =
@@ -581,7 +603,12 @@ function mountWebGLFrameLoop(
       transformHandler.offsetY +
       mapHeight / 2 +
       (cachedCanvasH - mapHeight) / (2 * scale);
-    view.setCameraState(centerX, centerY, scale * dpr);
+    view.setCameraState(
+      centerX,
+      centerY,
+      scale * dpr,
+      transformHandler.viewTilt,
+    );
     // Invoke the WebGL renderer's frame callback synchronously, with the just-
     // updated camera state. The callback re-arms itself via captureRaf, so
     // we'll get a fresh callback ready for the next canvas2D frame.
@@ -620,6 +647,7 @@ function mountWebGLFrameLoop(
   // context referenced (and alive) forever — each new game would then stack
   // another context until the browser's limit is hit.
   const stopFrameLoop = (): void => {
+    transformHandler.projection3D = null;
     if (rafId !== null) {
       cancelAnimationFrame(rafId);
       rafId = null;

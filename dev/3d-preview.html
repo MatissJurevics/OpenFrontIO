@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+  <head>
+    <title>OpenFront 3D model gallery</title>
+    <style>
+      body {
+        margin: 0;
+        background: #274c72;
+        font: 15px system-ui;
+        color: white;
+      }
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+      aside {
+        position: fixed;
+        z-index: 5;
+        left: 24px;
+        top: 20px;
+        background: #122c39dd;
+        padding: 18px;
+        border: 1px solid #bca268;
+        border-radius: 10px;
+      }
+      button {
+        padding: 8px;
+        margin: 5px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="base"></canvas>
+    <aside>
+      <b>OPENFRONT · 3D ART PREVIEW</b>
+      <p>Original procedural models · live renderer</p>
+      <button id="nuke">Detonate nuclear test</button>
+      <p>Drag to pan · scroll to zoom</p>
+    </aside>
+    <script type="module" src="/src/client/dev/ScenePreview.ts"></script>
+  </body>
+</html>

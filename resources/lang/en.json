@@ -1466,6 +1466,14 @@
   "map_layers": {
     "label": "label"
   },
+  "map_view": {
+    "description": "Change the map angle without changing the game.",
+    "flat": "2D map view",
+    "flat_hint": "Flat map view (default shortcut: O)",
+    "label": "Map view",
+    "tilted": "3D map view",
+    "tilted_hint": "3D terrain, buildings and ships (default shortcut: I)"
+  },
   "marketing_consent": {
     "body": "News and updates by email. Change it anytime in your account.",
     "dismiss": "Dismiss",

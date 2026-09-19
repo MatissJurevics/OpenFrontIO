@@ -23,6 +23,7 @@ const DBLCLICK_MIN_ZOOM = 0.7;
 const DBLCLICK_MAX_ZOOM = 3;
 
 export class Camera {
+  tilt = 0;
   offsetX: number;
   offsetY: number;
   zoom: number;
@@ -105,7 +106,8 @@ export class Camera {
   }
 
   /** Restore camera state, skipping the initial fitMap. */
-  setCameraState(x: number, y: number, z: number): void {
+  setCameraState(x: number, y: number, z: number, tilt = 0): void {
+    this.tilt = tilt;
     this.offsetX = x;
     this.offsetY = y;
     this.zoom = z;

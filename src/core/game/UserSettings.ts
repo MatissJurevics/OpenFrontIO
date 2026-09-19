@@ -41,6 +41,8 @@ export function getDefaultKeybinds(isMac: boolean): Record<string, string> {
     zoomOut: "KeyQ",
     zoomIn: "KeyE",
     centerCamera: "KeyC",
+    view2D: "KeyO",
+    view3D: "KeyI",
     moveUp: "KeyW",
     moveLeft: "KeyA",
     moveDown: "KeyS",
@@ -993,6 +995,13 @@ export class UserSettings {
   }
 
   // Returns {} if missing, unparseable, or fails schema validation.
+  mapView3D(): boolean {
+    return this.getString("settings.mapView", "3d") !== "2d";
+  }
+  setMapView3D(value: boolean): void {
+    this.setString("settings.mapView", value ? "3d" : "2d");
+  }
+
   graphicsOverrides(): GraphicsOverrides {
     const raw = this.getString(GRAPHICS_KEY, "");
     if (!raw) return {};

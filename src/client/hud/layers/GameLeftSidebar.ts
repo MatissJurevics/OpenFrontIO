@@ -8,6 +8,7 @@ import { OIL_LAYER_ID, oilFieldOutput } from "../../../core/game/OilFields";
 import { UserSettings } from "../../../core/game/UserSettings";
 import type { Controller } from "../../Controller";
 import {
+  MapViewModeEvent,
   MouseDownEvent,
   MouseMoveEvent,
   ToggleStructureEvent,
@@ -66,6 +67,7 @@ export class GameLeftSidebar extends LitElement implements Controller {
 
   init() {
     this.isVisible = true;
+    this.eventBus?.on(MapViewModeEvent, () => this.requestUpdate());
     const inspectOil = (e: MouseMoveEvent | MouseDownEvent) => {
       const cell = this.transformHandler.screenToWorldCoordinates(e.x, e.y);
       this.oilTile = this.game?.isValidCoord(cell.x, cell.y)
@@ -313,6 +315,26 @@ export class GameLeftSidebar extends LitElement implements Controller {
               </div>
             `
           : null}
+        <div
+          class="flex gap-1 mt-2"
+          role="group"
+          aria-label=${translateText("map_view.label")}
+        >
+          ${[false, true].map(
+            (tilted) =>
+              html`<button
+                class="rounded border border-slate-400/50 px-2 py-1 text-xs text-slate-100 hover:bg-slate-600/70"
+                aria-pressed=${this.transformHandler?.tiltedView === tilted}
+                title=${translateText(
+                  tilted ? "map_view.tilted_hint" : "map_view.flat_hint",
+                )}
+                @click=${() =>
+                  this.eventBus?.emit(new MapViewModeEvent(tilted))}
+              >
+                ${tilted ? "3D" : "2D"}
+              </button>`,
+          )}
+        </div>
         ${this.renderOilInfo()}
         <div class="flex flex-col gap-2 min-w-0 w-full">
           <player-stats
