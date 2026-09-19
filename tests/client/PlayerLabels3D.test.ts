@@ -8,10 +8,31 @@ import { Scene3D } from "../../src/client/render/three/Scene3D";
 import type { PlayerState, PlayerStatic } from "../../src/client/render/types";
 afterEach(() => vi.restoreAllMocks());
 describe("readable strategic labels", () => {
-  it("keeps small-country text readable when zoomed out", () => {
-    for (const zoom of [0.2, 0.5, 2, 20])
-      expect(playerLabelWidth(1, zoom)).toBe(180);
-    expect(playerLabelWidth(200, 20)).toBe(240);
+  it("scales with territory and stays inside narrow borders and holes", () => {
+    const owners = new Uint16Array(100 * 100).fill(3);
+    const fit = (size: number, x = 50, y = 50, elevation = () => 0) =>
+      playerLabelWidth(size, x, y, 3, owners, 100, 100, elevation);
+    expect(fit(10)).toBeCloseTo(15.3);
+    expect(fit(20)).toBeCloseTo(30.6);
+    expect(fit(100)).toBeLessThanOrEqual(90);
+    // A foreign tile inside the label, not just its perimeter.
+    owners[50 * 100 + 55] = 2;
+    expect(fit(100)).toBeCloseTo(9);
+    owners.fill(3);
+    for (let y = 52; y < 100; y++) owners.fill(2, y * 100, (y + 1) * 100);
+    expect(fit(100)).toBeLessThan(10);
+    owners[50 * 100 + 50] = 2;
+    expect(fit(100)).toBe(0);
+    expect(fit(0)).toBe(0);
+  });
+  it("accounts for elevated foreign terrain projecting into the label", () => {
+    const owners = new Uint16Array(10000).fill(3);
+    owners[60 * 100 + 50] = 2;
+    const flat = playerLabelWidth(20, 50, 50, 3, owners, 100, 100, () => 0);
+    const raised = playerLabelWidth(20, 50, 50, 3, owners, 100, 100, (_x, y) =>
+      y >= 60 ? 12 : 0,
+    );
+    expect(raised).toBeLessThan(flat);
   });
   it("distinguishes zero troops from missing data", () => {
     expect(troopLabel(0)).toBe("Troops: 0");
@@ -37,7 +58,9 @@ describe("readable strategic labels", () => {
       displayNames: new Map(),
       playerIDs: new Map(),
       palette: new Float32Array(32).fill(0.5),
-      viewScale: 2,
+      width: 100,
+      height: 100,
+      owners: new Uint16Array(10000).fill(3),
       ground: new T.Mesh(new T.PlaneGeometry(100, 100, 1, 1)),
     }) as Scene3D;
     scene.registerPlayers([

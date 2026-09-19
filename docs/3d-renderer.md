@@ -4,7 +4,7 @@ The default view uses a Three.js scene with an orthographic camera, raised terra
 
 Use **I** for 3D, **O** for the classic 2D view, or the sidebar buttons. Drag and scroll retain the normal map controls. The selected view is saved locally. The simulation and multiplayer protocol are unchanged.
 
-Player names and live troop totals appear together on high-contrast labels, with a minimum screen size at distant zoom levels. Country fills and colored borders make ownership visible across the terrain.
+Player names and live troop totals appear together on high-contrast labels, scaled together with their territory and inset within its projected borders, including holes and narrow regions. Country fills and colored borders make ownership visible across the terrain.
 
 Cities, factories, harbors, oil rigs, defenses, missile silos and SAM launchers have geometry above the ground. Harbors face nearby water. Warships have naval camouflage, turrets and radar; trade ships carry colored cargo; invasion transports have open troop decks. Ships interpolate between simulation updates. Nuclear missiles rise above the map, and impacts create expanding, fading mushroom clouds and shock rings.
 

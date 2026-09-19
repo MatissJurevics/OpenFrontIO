@@ -53,7 +53,6 @@ export class Scene3D {
   private oilVisible = true;
   private oilAlpha = 0.65;
   private playerIDs = new Map<string, number>();
-  private viewScale = 1;
   private labels = new Map<string, T.Sprite>();
   private displayNames = new Map<string, string>();
   private forest: {
@@ -298,8 +297,6 @@ export class Scene3D {
     this.forest = { trees, trunks, locations };
   }
   setCamera(state: SceneCameraState) {
-    this.viewScale = state.scale;
-    for (const label of this.labels.values()) this.resizeLabel(label);
     const { x, y, scale, width, height } = state;
     this.renderer.getSize(this.frameSize);
     if (this.frameSize.x !== width || this.frameSize.y !== height)
@@ -754,12 +751,6 @@ export class Scene3D {
       new Map(players.map((p) => [p.id, p.displayName || p.name])),
     );
   }
-  private resizeLabel(sprite: T.Sprite) {
-    const width =
-      playerLabelWidth(sprite.userData.countrySize ?? 0, this.viewScale) /
-      this.viewScale;
-    sprite.scale.set(width, (width * 144) / 512, 1);
-  }
   updateNames(
     names: Map<string, NameEntry>,
     players: Map<number, PlayerState>,
@@ -828,11 +819,21 @@ export class Scene3D {
         texture.needsUpdate = true;
         sprite.userData.stamp = stamp;
       }
-      sprite.userData.countrySize = n.size;
-      this.resizeLabel(sprite);
+      const labelWidth = playerLabelWidth(
+        n.size,
+        n.x,
+        n.y,
+        smallID,
+        this.owners,
+        this.width,
+        this.height,
+        (x, y) => surfaceHeight(this.ground.geometry, x, y),
+      );
+      sprite.scale.set(labelWidth, (labelWidth * 144) / 512, 1);
+      sprite.visible = labelWidth > 0;
       sprite.position.set(
         n.x,
-        surfaceHeight(this.ground.geometry, n.x, n.y) + 10,
+        surfaceHeight(this.ground.geometry, n.x, n.y),
         n.y,
       );
     }
